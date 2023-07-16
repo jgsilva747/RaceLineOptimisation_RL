@@ -10,9 +10,9 @@ import Inputs as inp
 matplotlib.rcParams.update({'font.size':12})
 
 
-def get_acceleration(speed, mass, action):
+def get_acceleration(speed, mass, throttle):
     '''
-    Computes acceleration of car based on current state and defined action
+    Computes longitudinal acceleration of car based on current state and throttle
 
     Parameters
     ----------
@@ -20,7 +20,7 @@ def get_acceleration(speed, mass, action):
         Current velocity of car, given in m/s
     mass: float
         Current mass of car, given in kg
-    action: float
+    throttle: float
         First entry of the action array, ranging from -1 to 1, which defines the throttle of the car
     
     Returns
@@ -29,68 +29,111 @@ def get_acceleration(speed, mass, action):
         norm of acceleration experienced by the car, given in m/s^2
     '''
 
-    if action[0] <= 0:
-        acc = action * 5.5 * 9.81
+    # Compute acceleration when braking
+    # max acc = -5.5 g
+    if throttle <= 0:
+        acc = throttle * 5.5 * 9.81
+    # Compute acceleration when accelerating
+    # based on empirical data
     else:
-        drag_area = 1.5
-        rho = 1.225
-        c_d = 0.7
-        # max_power = 600e3 # W
+        # lambda function to compute power based on speed
+        # power = lambda speed: 1.278552439 * speed if speed < 100/3.6 else ( 1.278552439 * 100/3.6 + 0.797314492 * (speed - 100/3.6) if speed < 200/3.6 else 57.66 - (speed * 3.6 - 200)/500 )
 
-        power = lambda speed: 1.278552439 * speed if speed < 100/3.6 else ( 1.278552439 * 100/3.6 + 0.797314492 * (speed - 100/3.6) if speed < 200/3.6 else 57.66 - (speed * 3.6 - 200)/500 )
 
-        #speed**3 * 3e-4 - 0.0588 * speed**2 + 3.1897 * speed # max_power * ( 1 - math.exp(- speed / 2e2) )
+        # compute acceleration
+        # acc = power(speed) - ( 0.5 * inp.rho * inp.drag_area * inp.c_d * speed**2 ) / mass
+        acc = inp.x1 + inp.x2 * speed**2 if speed < inp.x3/3.6 else inp.x1 + inp.x2 * ( inp.x3/3.6)**2 - inp.x4 * ( speed - inp.x3/3.6 )
 
-        # if speed < 10:
-        #     momentum = 1000
-        # else:
-        #     momentum = mass * speed
-
-        # acc = power(speed) / (momentum) - ( 0.5 * rho * drag_area * c_d * v**2 ) / mass
-        acc = power(speed) - ( 0.5 * rho * drag_area * c_d * speed**2 ) / mass
-        # acc = 14/45**2 * (90 - v)**2
-    
     return acc
 
 
-def propagate_dynamics(state, action, delta_t):
+def propagate_dynamics(state, action, delta_t = inp.delta_t):
+    '''
+    Propagates car dynamics based on current state and defined action
 
-    speed = state[2:4]
-    mass = state[4]
+    Parameters
+    ----------
+    state: float array [1 x 7]
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], longitudinal and lateral acceleration [g], respectively
+    action: float array [1 x 2]
+        Action array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
+    delta_t: float
+        Simulation time step [s]
+    
+    Returns
+    -------
+    state: float array [1 x 7]
+        State array after one propagation step, with the same content as the input state array.
+    '''
 
+    # Obtain speed from state
+    speed = state[2:4] # m/s
+    # Obtain mass from state
+    mass = state[4] # kg
+
+    # Define mass flow rate
     mass_flow_rate = 0.028 # kg/s
 
-    acceleration = get_acceleration(np.linalg.norm(speed), mass, action)
+    # Compute norm of current velocity
+    speed_norm = np.linalg.norm(speed) # m/s
 
-    angle = - np.deg2rad(15) * action[1]
+    if speed_norm < inp.min_speed:
+        speed_norm = inp.min_speed
 
-    mass = mass - mass_flow_rate * delta_t
-    if mass <= 0:
-        mass = 0
+    # Compute longitudinal acceleration based on current velocity, mass and throttle
+    acceleration = get_acceleration(speed_norm, mass, action[0])
+
+    # Convert steering input into an angle, with a maximum angle of 15 deg
+    angle = - np.deg2rad(15) * action[1] # rad
+
+    # Propagate mass using Euler integrator
+    mass = mass - mass_flow_rate * delta_t * action[0] if action[0] >= 0 else mass
+
+    # Define threshold of minimum mass (0 kg) and update acceleration (0 m/s^2)
+    if mass <= inp.vehicle_mass:
+        mass = inp.vehicle_mass
         acceleration = 0
-    
-    speed_norm = np.linalg.norm(speed)
-    if speed_norm < 0.1:
-        speed_norm = 0.1
 
+    # Compute tangent accelearation
     acc_x_tangent = np.cos(angle) * acceleration * speed[0] / speed_norm
     acc_y_tangent = np.cos(angle) * acceleration * speed[1] / speed_norm
 
-    acc_x_normal = - np.sin(angle) * acceleration * speed[1] / speed_norm
-    acc_y_normal = np.sin(angle) * acceleration * speed[0] / speed_norm
+    # Compute normal acceleration
+    acc_x_normal = - np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * speed[1] / speed_norm
+    acc_y_normal = np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * speed[0] / speed_norm
 
+    # Add normal and tangent accelerations in cartesian coordinates
     acc_x = acc_x_tangent + acc_x_normal 
     acc_y = acc_y_tangent + acc_y_normal
 
+    # Propagate speed using Euler integrator
     v = [speed[0] + acc_x * delta_t, speed[1] + acc_y * delta_t]
+
+    # Propagate position using Euler integrator
     position = [state[0] + speed[0] * delta_t + 0.5 * acc_x * delta_t**2, state[1] + speed[1] * delta_t + 0.5 * acc_y * delta_t**2]
 
-    n = np.linalg.norm( [ acc_x_normal, acc_y_normal ] ) / 9.81
+    # Compute longitudinal acceleration in g's
+    a = np.linalg.norm( [ acc_x_tangent, acc_y_tangent ] ) / 9.81 # g
 
-    return [position[0], position[1], v[0], v[1], mass, n]
+    # Compute normal acceleration in g's
+    n = np.linalg.norm( [ acc_x_normal, acc_y_normal ] ) / 9.81 # g
+
+    # Return updated state
+    return [position[0], position[1], v[0], v[1], mass, a, n]
     
 
 def assess_termination(state, coordinates_in, coordinates_out, index, time):
+    '''
+    Assess if simulation should end ...
+
+    Parameters
+    ----------
+
+    
+    Returns
+    -------
+
+    '''
 
     if index == len(coordinates_out) - 1: # successfully reached finish line
         return True
@@ -154,6 +197,17 @@ def assess_termination(state, coordinates_in, coordinates_out, index, time):
     return False
 
 def get_propagation_index(state, coordinates, propagation_index, circuit_factor):
+    '''
+    ...
+
+    Parameters
+    ----------
+
+    
+    Returns
+    -------
+
+    '''
 
     if np.absolute( ( coordinates[propagation_index + 1, 0] - coordinates[0,0]) * circuit_factor - state[0]) < 6 and np.absolute( (coordinates[propagation_index + 1, 1] - coordinates[0,1]) * circuit_factor - state[1]) < 6:
         propagation_index += 1
@@ -220,10 +274,10 @@ coordinates_out = np.zeros((len(coordinates),2))
 start = coordinates[0]
 
 # perpendicular direction scale factor
-direction_factor = 5e-5
+direction_factor = inp.direction_factor
 
 # real life circuit scale factor
-circuit_factor = 1e5
+circuit_factor = inp.circuit_factor
 
 # Cycle to compute inner and outter limits of circuit
 for i in range(len(coordinates)):
@@ -254,16 +308,18 @@ for i in range(len(coordinates)):
 time = 0
 
 # Create and initialise action array
-# Possible actions:
-# [0] -1: brake; 0: no power; 1: accelerate
-# [1] -1: turn left; 0: go straight; 1: turn right
+'''
+Possible actions:
+[0] -1: brake; 0: no power; 1: accelerate
+[1] -1: turn left; 0: go straight; 1: turn right
+'''
 action_array = [[1, 0]]
 
 # Load time step from input file
 delta_t = inp.delta_t
 
 # Define initial mass (for a qualifying lap)
-mass_0 = 100 # kg 
+mass_0 = inp.vehicle_mass + inp.fuel_mass # kg
 
 # Define initial velocity
 v_norm = 0.1 # 200 / 3.6 # m/s
@@ -272,7 +328,7 @@ v_0 = v_norm * v_direction / np.linalg.norm(v_direction)
 
 # Define initial state
 # position, velocity, mass, lateral acceleration
-state = [[0, 0, v_0[0], v_0[1], mass_0, 0]]
+state = [[0, 0, v_0[0], v_0[1], mass_0, get_acceleration(np.linalg.norm([v_0[0], v_0[1]]), mass_0, 1 ) / 9.81, 0]]
 
 complete = False
 propagation_index = 0
@@ -286,12 +342,8 @@ while not complete:
 
     complete = assess_termination(state[-1], coordinates_in, coordinates_out, propagation_index, time)
 
-    speed = state[-1]
-
-    # print("Velocity: " + str(3.6 * np.linalg.norm(speed[2:4])) + " km/h; time: " + str(time))
-
-
 state = np.array(state)
+
 fig,ax = plt.subplots(figsize = (8,6)) 
 ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
 ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
@@ -299,6 +351,37 @@ points = ax.scatter(state[:,0], state[:,1], c=( 3.6 * np.linalg.norm(state[:,2:4
 cbar = fig.colorbar(points)
 cbar.set_label('Velocity [km/h]')
 fig.tight_layout()
+
+
+fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(6,12))
+# Parse into own variables
+ax1 = ax[0]
+ax2 = ax[1]
+
+ax1.plot(np.arange(0, time + 0.1*delta_t, delta_t) , np.linalg.norm(([state[:,2], state[:,3]]), axis = 0) * 3.6)
+ax2.plot(np.arange(0, time + 0.1*delta_t, delta_t) , state[:,5], color = 'tab:blue', label = 'Longitudinal Acceleration')
+ax2.plot(np.arange(0, time + 0.1*delta_t, delta_t) , state[:,6], color = 'tab:orange', label = 'Lateral Acceleration')
+
+ax1.set_xlabel('Time [s]')
+ax1.set_ylabel('Velocity [km/h]')
+ax1.set_title("Velocity vs Time")
+
+ax2.set_xlabel('Time [s]')
+ax2.set_ylabel('Acceleration [g]')
+ax2.set_title("Acceleration vs Time")
+
+ax2.legend(loc = 'best')
+
+fig.subplots_adjust(hspace=0.28, wspace=0.2, top=0.94, bottom=0.1)
+
+
+fig,ax = plt.subplots(figsize = (8,6)) 
+ax.set_title('g-g Acceleration Diagram')
+ax.scatter(state[:,6], -state[:,5], color = 'k')
+ax.set_xlabel('Lateral Acceleration [g]')
+ax.set_ylabel('Longitudinal Acceleration [g]')
+fig.tight_layout()
+
 
 # Plot circuit
 fig, ax = plt.subplots(figsize=( 8 , 6))
@@ -310,7 +393,7 @@ for i in np.arange(-1,1.1,0.1):
 
     time = 0
 
-    state = [[0, 0, v_0[0], v_0[1], mass_0, 0]]
+    state = [[0, 0, v_0[0], v_0[1], mass_0, get_acceleration(np.linalg.norm([v_0[0], v_0[1]]), mass_0, 1 ) / 9.81, 0]]
     complete = False
     propagation_index = 0
 
@@ -329,5 +412,6 @@ for i in np.arange(-1,1.1,0.1):
     ax.plot(state[:,0], state[:,1], color = 'b')
 
 plt.tight_layout()
+
 
 plt.show()
