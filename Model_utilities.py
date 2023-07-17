@@ -1,8 +1,9 @@
 # General imports
 import numpy as np
 import math
+import os
 
-# File inports
+# File imports
 import Inputs as inp
 
 
@@ -234,3 +235,69 @@ def get_circuit_index(state, coordinates, circuit_index):
 
     # Return index (which may or may not have been updated)
     return circuit_index
+
+
+
+###########################################
+# Circuit Definition ######################
+###########################################
+'''
+Routine to read coordinates from file for a
+chosen circuit. Inner and outter coordinates
+of the track are created, along with the
+coordinates of the centerline.
+'''
+
+# Load chosen circuit from input file
+chosen_circuit = inp.chosen_circuit
+
+# Define folder path
+circuit_dir = os.path.dirname((__file__)) + "/circuits"
+# Create list of available circuits
+circuit_list = str(next( os.walk( circuit_dir ) )[2])
+circuit_list = circuit_list.replace('.txt', '')
+
+# Check if chosen circuit is available
+if chosen_circuit in circuit_list:
+    # Read coordinates
+    coordinates = np.loadtxt(circuit_dir + '/' + chosen_circuit + '.txt')
+else:
+    # If circuit is not available, print list of available circuits and exit program
+    print("Circuit not available. Please pick a circuit from the following list: " + circuit_list.strip(']['))
+    exit(0)
+
+# Create variables for inner and outter limits of circuit
+coordinates_in = np.zeros((len(coordinates),2))
+coordinates_out = np.zeros((len(coordinates),2))
+
+# Define origin of circuit
+start = coordinates[0]
+
+# perpendicular direction scale factor
+direction_factor = inp.direction_factor
+
+# real life circuit scale factor
+circuit_factor = inp.circuit_factor
+
+# Cycle to compute inner and outter limits of circuit
+for i in range(len(coordinates)):
+
+    # Make sure that minimum index is at least 0
+    min_val = i - 1
+    if min_val < 0:
+        min_val = 0
+
+    # Make sure that maximum index does not exceed array length
+    max_val = i + 1
+    if max_val >= len(coordinates):
+        max_val = len(coordinates) - 1
+
+    # Compute track's perpendicular direction at each point
+    direction = np.array([- coordinates[max_val,1] + coordinates[min_val,1], coordinates[max_val,0] - coordinates[min_val,0]])
+    
+    # Normalise and scale perpendicular direction
+    direction = direction_factor * direction / np.linalg.norm(direction)
+
+    # Compute inner and outter limits of circuit
+    coordinates_in[i] = (coordinates[i] - direction  - start) * circuit_factor
+    coordinates_out[i] = (coordinates[i] + direction  - start) * circuit_factor
