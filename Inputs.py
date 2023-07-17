@@ -4,6 +4,18 @@ chosen_circuit = "test curve"
 # Choose simulation time step
 delta_t = 0.025 # s
 
+# Define initial velocity (in km/h)
+initial_velocity = 200 # km/h
+
+# Define maximum simulation time (in minutes)
+max_min = 3 # min
+
+# Define maximum braking acceleration (positive, in g's)
+braking_acceleration = 5.5 # g
+
+# Define tolerance used to update track coordinate index
+index_pos_tolerance = 6 # m
+
 # Define minimum speed
 min_speed = 0.1 # m/s
 
