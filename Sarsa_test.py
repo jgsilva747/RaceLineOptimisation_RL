@@ -11,6 +11,45 @@ import Model_utilities as util
 from Model_utilities import coordinates, coordinates_in, coordinates_out
 
 
+# TODO: NOT FINISHED!!!
+
+
+# Define action space
+action_space = [
+    # possible actions: brake/accelerate; turn left/right.
+    # Both options range from -1 to 1
+    np.arange(-1, 1 + 0.1, 0.1), # discrete, with steps of 0.1
+    np.arange(-1, 1 + 0.1, 0.1) # discrete, with steps of 0.1
+]
+
+# Define observation space
+observation_space = [
+    # x position, y position, x velocity, y velocity, mass, long acc, lat acc
+    np.arange(min(coordinates_out[:,0]), max(coordinates_out[:,0]) + 1, 1), # discrete, with steps of 1 m
+    np.arange(min(coordinates_out[:,1]), max(coordinates_out[:,1]) + 1, 1), # discrete, with steps of 1 m
+    np.arange(int(inp.min_speed), int(360/3.6) + 1, 1), # discrete, with steps of 1 m/s
+    np.arange(int(inp.min_speed), int(360/3.6) + 1, 1), # discrete, with steps of 1 m/s
+    np.arange(inp.vehicle_mass)
+    [
+        min(coordinates_out[:,0]),
+        min(coordinates_out[:,1]), 
+        inp.min_speed,
+        inp.min_speed, 
+        inp.vehicle_mass, 
+        -10,
+        -10
+    ],
+    [
+        max(coordinates_out[:,0]), 
+        max(coordinates_out[:,1]),
+        400/3.6, # m/s
+        400/3.6, # m/s
+        inp.vehicle_mass + inp.fuel_mass,
+        10,
+        10
+    ],
+]
+
 ###########################################
 # Run test episodes #######################
 ###########################################
@@ -69,10 +108,10 @@ for episode in range(n_episodes):
         time += delta_t
 
         # Update circuit index
-        circuit_index = util.get_circuit_index(state[-1], coordinates, circuit_index)
+        circuit_index, _ = util.get_circuit_index(state[-1], coordinates, circuit_index)
 
         # Check termination conditions
-        complete = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)
+        complete, _ , _ = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)
 
     # Convert state to numpy array
     state = np.array(state)

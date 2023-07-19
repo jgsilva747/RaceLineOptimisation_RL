@@ -49,25 +49,46 @@ x2 = 7.3e-2
 x3 = 55 # km/h
 x4 = 0.27
 
+# Normalisation factor for reward function (distance to next checkpoint)
+checkpoint_distance_normalisation_factor = 1/10
 
 #########################
 # DDPG Inputs ###########
 #########################
 
 # TODO: Add comments, change values
-capacity=1000000
+capacity= int( 1e6 )
 
-batch_size=64
-update_iteration=200
+batch_size = 64 # 64
+update_iteration = 100 # 200
 # tau for soft updating
-tau=0.001
+tau = 0.001 # 0.001
 
-gamma=0.99
+gamma=0.99 # 0.99
 directory = './'
-hidden1=20
-hidden2=64
+hidden1=20 # 20
+hidden2=40 # 64
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Seed
 seed = 0
+
+# Number of episodes
+n_episodes = int( 1e6 )
+
+# Exploration fator
+exploration_factor = 2 # 1
+
+# Learning rate
+learning_rate = 4e-2 # 2e-2
+
+# show episode plot (trajectories)
+plot_episode = False
+# show reward and action plot
+plot_stats = False
+
+# Noise parameters
+theta = 0.15 # 0.15 from paper
+sigma = 0.2 # 0.2 from paper, 0.25 from code example
+# NOTE: miu = 0 from paper

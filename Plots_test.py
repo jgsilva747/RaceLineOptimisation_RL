@@ -55,10 +55,10 @@ while not complete:
     time += delta_t
 
     # Update circuit index
-    circuit_index = util.get_circuit_index(state[-1], coordinates, circuit_index)
+    circuit_index, _ = util.get_circuit_index(state[-1], coordinates, circuit_index)
 
     # Check termination conditions
-    complete = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)
+    complete, _, _ = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)
 
 
 # Convert state to numpy array
@@ -128,7 +128,7 @@ for i in np.arange(-1,1.1,0.1):
         time += delta_t
 
         # Update track position index
-        circuit_index = util.get_circuit_index(state[-1], coordinates, circuit_index)
+        circuit_index, _ = util.get_circuit_index(state[-1], coordinates, circuit_index)
 
         # Check termination condition
         complete, _ , _ = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)

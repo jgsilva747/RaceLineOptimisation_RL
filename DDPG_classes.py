@@ -22,7 +22,7 @@ class OU_Noise(object):
         sigma: the volatility of the noise, controlling the magnitude of fluctuations
     """
 
-    def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.25):
+    def __init__(self, size, seed, mu=0., theta=inp.theta, sigma=inp.sigma):
         self.mu = mu * np.ones(size)
         self.theta = theta
         self.sigma = sigma
@@ -110,7 +110,7 @@ class Actor(nn.Module):
     The Actor model takes in a state observation as input and 
     outputs an action, which is a continuous value.
     
-    It consists of four fully coonected linear layers with ReLU activation functions and 
+    It consists of four (CHANGED TO TWO) fully coonected linear layers with ReLU activation functions and 
     a final output layer selects the optimized actions for the state
     """
     def __init__(self, n_states, action_dim, hidden1):
@@ -118,12 +118,12 @@ class Actor(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(n_states, hidden1), 
             nn.ReLU(), 
-            nn.Linear(hidden1, hidden1), 
-            nn.ReLU(), 
-            nn.Linear(hidden1, hidden1), 
-            nn.ReLU(), 
-            nn.Linear(hidden1, action_dim),
-            nn.Tanh() # tanh sets limits of output from -1 to 1
+            # nn.Linear(hidden1, hidden1), 
+            # nn.ReLU(), 
+            # nn.Linear(hidden1, hidden1), 
+            # nn.ReLU(), 
+            nn.Linear(hidden1, action_dim)
+            # nn.Tanh() # tanh sets limits of output from -1 to 1
         )
         
     def forward(self, state):
@@ -134,21 +134,19 @@ class Critic(nn.Module):
     The Critic model takes in both a state observation and an action as input and 
     outputs a Q-value, which estimates the expected total reward for the current state-action pair. 
     
-    It consists of four linear layers with ReLU activation functions, 
+    It consists of four (CHANGED TO TWO) linear layers with ReLU activation functions, 
     State and action inputs are concatenated before being fed into the first linear layer. 
-    
-    The output layer has a single output, representing the Q-value
     """
     def __init__(self, n_states, action_dim, hidden2):
         super(Critic, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(n_states + action_dim, hidden2), 
             nn.ReLU(), 
-            nn.Linear(hidden2, hidden2), 
-            nn.ReLU(), 
-            nn.Linear(hidden2, hidden2), 
-            nn.ReLU(), 
-            nn.Linear(hidden2, action_dim)
+            # nn.Linear(hidden2, hidden2), 
+            # nn.ReLU(), 
+            # nn.Linear(hidden2, hidden2), 
+            # nn.ReLU(),
+            nn.Linear(hidden2, 1)
         )
         
     def forward(self, state, action):
@@ -181,7 +179,7 @@ class DDPG(object):
         self.critic_target = Critic(state_dim, action_dim,  inp.hidden2).to(inp.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
         # learning rate
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=2e-2)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=inp.learning_rate)
 
         
 
@@ -226,7 +224,7 @@ class DDPG(object):
             reward = torch.FloatTensor(reward).to(inp.device)
 
             # Compute the target Q value
-            target_Q = self.critic_target(next_state, self.actor_target(next_state)) # NOTE: code breaks here
+            target_Q = self.critic_target(next_state, self.actor_target(next_state))
             target_Q = reward + (done * inp.gamma * target_Q).detach()
 
 

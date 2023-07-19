@@ -212,7 +212,8 @@ def get_circuit_index(state, coordinates, circuit_index):
     Parameters
     ----------
     state: float array [1 x 7]
-        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], longitudinal and lateral acceleration [g], respectively
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg],
+        longitudinal and lateral acceleration [g], respectively
     coordinates: float array [2 x number_of_track_points]
         array of xy coordinates of the curcuit's centre line
     curcuit_index: int
@@ -222,6 +223,9 @@ def get_circuit_index(state, coordinates, circuit_index):
     -------
     curcuit_index: int
         index of current position w.r.t. the coordinate array
+    normalised_distance_to_checkpoint: float
+        distance to the next checkpoint, normalised from 0 to 10, where 0 is the distance
+        from the previous checkpoint and 10 is when the car is the closest to the new checkpoint
     '''
 
     # Compute horizontal distance between end of current track portion and starting position
@@ -229,17 +233,34 @@ def get_circuit_index(state, coordinates, circuit_index):
     # Compute vertical distance between end of current track portion and starting position
     y_distance = ( coordinates[circuit_index + 1, 1] - coordinates[0,1] ) * inp.circuit_factor
 
+    # Compute horizontal distance from car to checkpoint
+    x_dif = np.absolute( x_distance - state[0])
+    # Compute vertical distance from car to checkpoint
+    y_dif = np.absolute( y_distance - state[1])
+
+    # Compute total distance from car to checkpoint
+    distance = np.linalg.norm([x_dif, y_dif]) # m
+
+    # Compute distance between checkpoints
+    distance_between_checkpoints_x = ( coordinates[circuit_index + 1, 0] - coordinates[circuit_index,0] ) * inp.circuit_factor
+    distance_between_checkpoints_y = ( coordinates[circuit_index + 1, 1] - coordinates[circuit_index,1] ) * inp.circuit_factor
+    distance_between_checkpoints = np.linalg.norm([distance_between_checkpoints_x, distance_between_checkpoints_y])
+
     # Assess if current car position is within a certain distance (tolerance defined in the inputs file)
     # of next track coordinates
-    if np.absolute( x_distance - state[0]) < inp.index_pos_tolerance and np.absolute( y_distance - state[1]) < inp.index_pos_tolerance:
+    # if x_dif < inp.index_pos_tolerance and y_dif < inp.index_pos_tolerance:
+    if distance < inp.index_pos_tolerance:
         # Increase index to indicate that car is in the next portion of the track
         circuit_index += 1
+    
+    # Compute normalised distance based on factors from input file
+    normalised_distance_to_checkpoint = inp.checkpoint_distance_normalisation_factor * ( 1 - distance / distance_between_checkpoints )
 
-    # Return index (which may or may not have been updated)
-    return circuit_index
+    # Return index (which may or may not have been updated) and normalised distance to the next checkpoint
+    return circuit_index, normalised_distance_to_checkpoint
 
 
-def get_reward(left_track, checkpoint, finish_line):
+def get_reward(left_track, finish_line, normalised_distance_to_checkpoint):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -247,12 +268,12 @@ def get_reward(left_track, checkpoint, finish_line):
     ----------
     left_track: bool
         Boolean indicating if the car has left the track (in which case it is severely penalised)
-    checkpoint: bool
-        Boolean indicating if the car has reached a new checkpoint (in which case it means that it
-        is advancing in the right direction, and so it is positively rewarded)
     finish_line: bool
         Boolean indicating if the car has reached the finish line, in which case it is very very
         positively rewarded
+    normalised_distance_to_checkpoint: float
+        Distance to next checkpoint, normalised to range between 0 and 10. The closer the agent is to
+        the next checkpoint, the higher the bonus
     
     Returns
     -------
@@ -260,23 +281,23 @@ def get_reward(left_track, checkpoint, finish_line):
         current reward, to be added to the total reward
     '''
 
-    # Initialise current reward
-    current_reward = 0
+    '''
+    # Initialise current reward, penalising agent by 1 point for each second that passes
+    current_reward = -inp.delta_t
+    
+    # Give incentive to move forward
+    current_reward += normalised_distance_to_checkpoint
 
     # Penalise if car left track.
     if left_track:
-        return -1e6
+        current_reward += -1e3
     
-    # Give small bonus when car reaches new checkpoint
-    if checkpoint:
-        current_reward = 10
-    
-    # Give big bonus when car completes lap and overwrite checkpoint bonus
+    # Give big bonus when car completes lap
     if finish_line:
-        current_reward = 1e3
+        current_reward += 1e3
+        '''
     
-    # Penalise agent by 1 point for each second that passes:
-    current_reward += -inp.delta_t
+    current_reward = normalised_distance_to_checkpoint
 
     return current_reward
 
