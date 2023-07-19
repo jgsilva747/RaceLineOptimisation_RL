@@ -1,3 +1,5 @@
+import torch
+
 # Choose circuit here
 chosen_circuit = "test curve"
 
@@ -46,3 +48,26 @@ x1 = 5
 x2 = 7.3e-2
 x3 = 55 # km/h
 x4 = 0.27
+
+
+#########################
+# DDPG Inputs ###########
+#########################
+
+# TODO: Add comments, change values
+capacity=1000000
+
+batch_size=64
+update_iteration=200
+# tau for soft updating
+tau=0.001
+
+gamma=0.99
+directory = './'
+hidden1=20
+hidden2=64
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Seed
+seed = 0

@@ -135,17 +135,19 @@ def assess_termination(state, coordinates_in, coordinates_out, index, time):
 
     Returns
     -------
-    True or False bool
-        indicates wheather simulation should end or not. True indicates that the simulation should end.
+    3 True or False bools
+        1st - indicates wheather simulation should end or not. True indicates that the simulation should end.
+        2nd - indicates if car has exceeded track limits. True indicates that the car has left the track.
+        3rd- indicates if car successfully completed a lap. True indicates that it has reached  the finish line.
     '''
 
     # Assess if car has reached finish line
     if index == len(coordinates_out) - 1: # successfully reached finish line
-        return True # end simulation
+        return True, False, True # end simulation
     
     # Assess if simulation time was exceeded
     elif time > inp.max_min * 60:
-        return True # end simulation
+        return True, False, False # end simulation
     
     # Assess if car left the race track
     else:
@@ -179,10 +181,10 @@ def assess_termination(state, coordinates_in, coordinates_out, index, time):
             # Check if y position exceeded track limits
             if y_out > y_in:
                 if y > y_out or y < y_in:
-                    return True # end simulation
+                    return True, True, False # end simulation
             else:
                 if y < y_out or y > y_in:
-                    return True # end simulation
+                    return True, True, False # end simulation
 
         # If current portion is (mostly) vertical, check if x (horizontal) position was exceeded
         else:
@@ -195,13 +197,13 @@ def assess_termination(state, coordinates_in, coordinates_out, index, time):
             # Check if x position exceeded track limits
             if x_out > x_in:
                 if x > x_out or x < x_in:
-                    return True # end simulation
+                    return True, True, False # end simulation
             else:
                 if x < x_out or x > x_in:
-                    return True # end simulation
+                    return True, True, False # end simulation
 
     # If none of the above cases was activated, then the simulation should not be terminated
-    return False
+    return False, False, False
 
 def get_circuit_index(state, coordinates, circuit_index):
     '''
@@ -236,6 +238,47 @@ def get_circuit_index(state, coordinates, circuit_index):
     # Return index (which may or may not have been updated)
     return circuit_index
 
+
+def get_reward(left_track, checkpoint, finish_line):
+    '''
+    Compute the reward given the current status of the car w.r.t. the circuit
+
+    Parameters
+    ----------
+    left_track: bool
+        Boolean indicating if the car has left the track (in which case it is severely penalised)
+    checkpoint: bool
+        Boolean indicating if the car has reached a new checkpoint (in which case it means that it
+        is advancing in the right direction, and so it is positively rewarded)
+    finish_line: bool
+        Boolean indicating if the car has reached the finish line, in which case it is very very
+        positively rewarded
+    
+    Returns
+    -------
+    current_reward: float
+        current reward, to be added to the total reward
+    '''
+
+    # Initialise current reward
+    current_reward = 0
+
+    # Penalise if car left track.
+    if left_track:
+        return -1e6
+    
+    # Give small bonus when car reaches new checkpoint
+    if checkpoint:
+        current_reward = 10
+    
+    # Give big bonus when car completes lap and overwrite checkpoint bonus
+    if finish_line:
+        current_reward = 1e3
+    
+    # Penalise agent by 1 point for each second that passes:
+    current_reward += -inp.delta_t
+
+    return current_reward
 
 
 ###########################################

@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams.update({'font.size':12})
+import torch
 
 # File imports
 import Inputs as inp
@@ -72,6 +73,7 @@ cbar = fig.colorbar(points)
 cbar.set_label('Velocity [km/h]')
 fig.tight_layout()
 
+
 # Plot velocity vs time and accelerations vs time
 fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(6,12))
 # Parse into own variables
@@ -129,7 +131,7 @@ for i in np.arange(-1,1.1,0.1):
         circuit_index = util.get_circuit_index(state[-1], coordinates, circuit_index)
 
         # Check termination condition
-        complete = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)
+        complete, _ , _ = util.assess_termination(state[-1], coordinates_in, coordinates_out, circuit_index, time)
 
     # Convert state to numpy array
     state = np.array(state)
