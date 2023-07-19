@@ -122,7 +122,8 @@ class Actor(nn.Module):
             nn.ReLU(), 
             nn.Linear(hidden1, hidden1), 
             nn.ReLU(), 
-            nn.Linear(hidden1, action_dim)
+            nn.Linear(hidden1, action_dim),
+            nn.Tanh() # tanh sets limits of output from -1 to 1
         )
         
     def forward(self, state):

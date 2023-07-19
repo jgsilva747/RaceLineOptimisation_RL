@@ -122,9 +122,7 @@ env = CarEnvironment()
 # Define different parameters for training the agent
 # TODO: Define these in inputs file
 # TODO: Make inputs file clearer
-max_episode = 10
-ep_r = 0
-total_step = 0
+max_episode = 200
 score_hist=[]
 # for rendering the environmnet
 render=True
@@ -139,10 +137,8 @@ action_dim = env.action_space.shape[0]
 max_action = float(env.action_space.high[0])
 min_Val = torch.tensor(1e-7).float().to(inp.device) 
 
-max_time_steps=5000
 # Exploration Noise
-exploration_noise=0.1
-exploration_noise=0.1 * max_action
+exploration_noise=0.5 * max_action
 
 
 # Create a DDPG instance
@@ -158,16 +154,16 @@ for i in range(max_episode):
         action = agent.select_action(state)
         # Add Gaussian noise to actions for exploration
         action = (action + np.random.normal(0, 1, size=action_dim)).clip(-max_action, max_action)
-        print(action)
         #action += ou_noise.sample()
         next_state, reward, done = env.step(action)
         total_reward += reward
         # if render and i >= render_interval : env.render()
         agent.replay_buffer.push((state, next_state, action, reward, float(done)))
         state = next_state
+
+        # TODO: plot trajectory with plt.pause()
         
     score_hist.append(total_reward)
-    total_step += step+1
     print("Episode: {}  Total Reward: {:0.2f}".format( i, total_reward))
     agent.update()
     if i % 100 == 0:
