@@ -62,7 +62,8 @@ capacity= int( 1e6 )
 batch_size = 64 # 64
 update_iteration = 100 # 200
 # tau for soft updating
-tau = 0.001 # 0.001
+tau_actor = 0.001 # 0.001    
+tau_critic = 0.001 # 0.001
 
 gamma=0.99 # 0.99
 directory = './'
@@ -79,12 +80,13 @@ n_episodes = int( 1e6 )
 
 # Exploration fator
 exploration_factor = 2 # 1
-
+# 2, 4e-2
 # Learning rate
-learning_rate = 4e-2 # 2e-2
+learning_rate_actor = 3e-3 # 3e-3
+learning_rate_critic = 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = False
+plot_episode = True
 # show reward and action plot
 plot_stats = False
 

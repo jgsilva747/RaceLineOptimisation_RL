@@ -178,10 +178,10 @@ for i in range(inp.n_episodes):
         agent.replay_buffer.push((state, next_state, action, reward, float(done)))
         state = next_state
 
-    # Plot current position
-    if inp.plot_episode:
-        ax.scatter(state[0], state[1], marker='.', color = 'b', linewidths=0.01)
-        plt.pause(1/60)
+        # Plot current position
+        if inp.plot_episode:
+            ax.scatter(state[0], state[1], marker='.', color = 'b', linewidths=0.01)
+
     
     agent_action = np.array(agent_action)
     # print(agent_action)
@@ -191,10 +191,12 @@ for i in range(inp.n_episodes):
             ax_reward.scatter(i, total_reward)
             ax_action.scatter(i, np.mean(agent_action[:,0]), color='tab:blue')
             ax_action.scatter(i, np.mean(agent_action[:,1]), color='tab:orange')
+        
+    if any([ inp.plot_episode , inp.plot_stats ]):
         plt.pause(1/60)
 
     score_hist.append(total_reward)
-    print("Episode: {}  Total Reward: {:0.2f}  Mean Actions: {:0.1f} and {:0.1f}".format( i, total_reward, np.mean(agent_action[:,0]), np.mean(agent_action[:,1])))
+    print("Episode: {}  Total Reward: {:0.2f}  Mean Actions: {:0.3f} and {:0.3f}".format( i, total_reward, np.mean(agent_action[:,0]), np.mean(agent_action[:,1])))
     agent.update()
     if i % 100 == 0:
         agent.save()

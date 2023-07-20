@@ -173,13 +173,12 @@ class DDPG(object):
         self.actor = Actor(state_dim, action_dim, inp.hidden1).to(inp.device)
         self.actor_target = Actor(state_dim, action_dim,  inp.hidden1).to(inp.device)
         self.actor_target.load_state_dict(self.actor.state_dict())
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=3e-3)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=inp.learning_rate_actor)
 
         self.critic = Critic(state_dim, action_dim,  inp.hidden2).to(inp.device)
         self.critic_target = Critic(state_dim, action_dim,  inp.hidden2).to(inp.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
-        # learning rate
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=inp.learning_rate)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=inp.learning_rate_critic)
 
         
 
@@ -255,10 +254,10 @@ class DDPG(object):
             tau,a small fraction of the actor and critic network weights are transferred to their target counterparts. 
             """
             for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                target_param.data.copy_(inp.tau * param.data + (1 - inp.tau) * target_param.data)
+                target_param.data.copy_(inp.tau_critic * param.data + (1 - inp.tau_critic) * target_param.data)
 
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                target_param.data.copy_(inp.tau * param.data + (1 - inp.tau) * target_param.data)
+                target_param.data.copy_(inp.tau_actor * param.data + (1 - inp.tau_actor) * target_param.data)
             
            
             self.num_actor_update_iteration += 1

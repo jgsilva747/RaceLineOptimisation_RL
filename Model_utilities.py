@@ -223,9 +223,9 @@ def get_circuit_index(state, coordinates, circuit_index):
     -------
     curcuit_index: int
         index of current position w.r.t. the coordinate array
-    normalised_distance_to_checkpoint: float
-        distance to the next checkpoint, normalised from 0 to 10, where 0 is the distance
-        from the previous checkpoint and 10 is when the car is the closest to the new checkpoint
+    normalised_travelled_distance: float
+        distance travelled from the last checkpoint, normalised from 0 to 10, where 10 is the maximum
+        before skipping to the next circuit index
     '''
 
     # Compute horizontal distance between end of current track portion and starting position
@@ -246,6 +246,9 @@ def get_circuit_index(state, coordinates, circuit_index):
     distance_between_checkpoints_y = ( coordinates[circuit_index + 1, 1] - coordinates[circuit_index,1] ) * inp.circuit_factor
     distance_between_checkpoints = np.linalg.norm([distance_between_checkpoints_x, distance_between_checkpoints_y])
 
+    # Compute distance from previous checkpoint
+    distance_from_last_checkpoint = distance_between_checkpoints - distance
+
     # Assess if current car position is within a certain distance (tolerance defined in the inputs file)
     # of next track coordinates
     # if x_dif < inp.index_pos_tolerance and y_dif < inp.index_pos_tolerance:
@@ -254,13 +257,13 @@ def get_circuit_index(state, coordinates, circuit_index):
         circuit_index += 1
     
     # Compute normalised distance based on factors from input file
-    normalised_distance_to_checkpoint = inp.checkpoint_distance_normalisation_factor * ( 1 - distance / distance_between_checkpoints )
+    normalised_travelled_distance = inp.checkpoint_distance_normalisation_factor * ( distance_from_last_checkpoint / distance_between_checkpoints )
 
-    # Return index (which may or may not have been updated) and normalised distance to the next checkpoint
-    return circuit_index, normalised_distance_to_checkpoint
+    # Return index (which may or may not have been updated) and normalised travelled distance
+    return circuit_index, normalised_travelled_distance
 
 
-def get_reward(left_track, finish_line, normalised_distance_to_checkpoint):
+def get_reward(left_track, finish_line, normalised_travelled_distance):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -271,9 +274,9 @@ def get_reward(left_track, finish_line, normalised_distance_to_checkpoint):
     finish_line: bool
         Boolean indicating if the car has reached the finish line, in which case it is very very
         positively rewarded
-    normalised_distance_to_checkpoint: float
-        Distance to next checkpoint, normalised to range between 0 and 10. The closer the agent is to
-        the next checkpoint, the higher the bonus
+    normalised_travelled_distance: float
+        Travelled distance, normalised to range between 0 and 10. The farther the agent travels
+        (in the right direction), the higher the reward
     
     Returns
     -------
@@ -286,7 +289,7 @@ def get_reward(left_track, finish_line, normalised_distance_to_checkpoint):
     current_reward = -inp.delta_t
     
     # Give incentive to move forward
-    current_reward += normalised_distance_to_checkpoint
+    current_reward += normalised_travelled_distance
 
     # Penalise if car left track.
     if left_track:
@@ -297,7 +300,7 @@ def get_reward(left_track, finish_line, normalised_distance_to_checkpoint):
         current_reward += 1e3
         '''
     
-    current_reward = normalised_distance_to_checkpoint
+    current_reward = normalised_travelled_distance
 
     return current_reward
 
