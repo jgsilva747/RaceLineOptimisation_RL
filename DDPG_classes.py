@@ -1,3 +1,6 @@
+# Modified from: https://github.com/arshren/Reinforcement_Learning/blob/main/DDPG-MountainCar.ipynb
+# Paper: https://arxiv.org/abs/1509.02971
+
 # General imports
 import numpy as np
 import random
@@ -117,12 +120,13 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(n_states, hidden1), 
-            nn.ReLU(), 
+            # nn.ReLU(), 
+            nn.Tanh(), # tanh sets limits of output from -1 to 1
             # nn.Linear(hidden1, hidden1), 
             # nn.ReLU(), 
             # nn.Linear(hidden1, hidden1), 
             # nn.ReLU(), 
-            nn.Linear(hidden1, action_dim)
+            nn.Linear(hidden1, action_dim), nn.Tanh()
             # nn.Tanh() # tanh sets limits of output from -1 to 1
         )
         

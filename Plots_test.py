@@ -40,7 +40,7 @@ v_0 = v_norm * v_direction / np.linalg.norm(v_direction)
 
 # Define initial state
 # position, velocity, mass, lateral acceleration
-state = [[0, 0, v_0[0], v_0[1], mass_0, util.get_acceleration(np.linalg.norm([v_0[0], v_0[1]]), mass_0, 1 ) / 9.81, 0]]
+state = [[0, 0, v_0[0], v_0[1], mass_0]]
 
 # Initialise auxiliar propagation varaibles
 complete = False # termination flag
@@ -49,7 +49,8 @@ circuit_index = 0 # index of car's current position in the coordinate array
 # Run episode until termination
 while not complete:
     # Propagate state
-    state.append(util.propagate_dynamics(state[-1], action_array[0], delta_t))
+    new_state, a, n = util.propagate_dynamics(state[-1], action_array[0], delta_t)
+    state.append(new_state)
 
     # Update current time
     time += delta_t

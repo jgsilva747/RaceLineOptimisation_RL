@@ -1,3 +1,11 @@
+##########################################################
+# Author: Joao Goncalo Dias Basto da Silva               #
+#         Student No.: 5857732                           #
+# Course: AE4-350 Bio-Inspired Intelligence and Learning #
+# Date: July 2023                                        #
+##########################################################
+
+
 # General imports
 import numpy as np
 import math
@@ -6,6 +14,31 @@ import os
 # File imports
 import Inputs as inp
 
+
+def convert_action(action):
+    '''
+    Function that converts the discrete input (from 0 to 9)
+    to the two arrays that can be read by the defined car class
+
+    Parameters
+    ----------
+    action: int
+        discrete action obtained from discrete SARSA policy.
+        For the discrete model, 10 actions are possible
+    
+    Returns
+    ----------
+    action_array: float array [1 x 2]
+        array with 2 actions: the first entry corresponds to the throttle/break,
+        and the second entry corresponds to the wheel (left/right)
+    '''
+
+    # Convert action to throttle, if action is within the range of 0 to 4
+    throttle = float( action < 5 ) * float( action - 2 ) / 2.0
+    # Convert action to wheel, if action is within the range of 5 to 9
+    wheel = float( action >= 5 ) * float( action - 7 ) / 2.0
+
+    return [throttle, wheel]
 
 def get_acceleration(speed, mass, throttle):
     '''
@@ -32,7 +65,8 @@ def get_acceleration(speed, mass, throttle):
     # Compute acceleration when accelerating
     else:
         # profile based on empirical data
-        acc = inp.x1 + inp.x2 * speed**2 if speed < inp.x3/3.6 else inp.x1 + inp.x2 * ( inp.x3/3.6)**2 - inp.x4 * ( speed - inp.x3/3.6 )
+        force = inp.x1 + inp.x2 * speed**2 if speed < inp.x3/3.6 else inp.x1 + inp.x2 * ( inp.x3/3.6)**2 - inp.x4 * ( speed - inp.x3/3.6 )
+        acc = force / mass
 
     return throttle * acc
 
@@ -43,8 +77,8 @@ def propagate_dynamics(state, action, delta_t = inp.delta_t):
 
     Parameters
     ----------
-    state: float array [1 x 7]
-        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], longitudinal and lateral acceleration [g], respectively
+    state: float array [1 x 5]
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], respectively
     action: float array [1 x 2]
         Action array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
     delta_t: float
@@ -52,14 +86,12 @@ def propagate_dynamics(state, action, delta_t = inp.delta_t):
     
     Returns
     -------
-    state: float array [1 x 7]
+    state: float array [1 x 5]
         State array after one propagation step, with the same content as the input state array.
     '''
 
     # Obtain speed from state
     speed = state[2:4] # m/s
-    # Obtain mass from state
-    mass = state[4] # kg
 
     # Define mass flow rate
     mass_flow_rate = 0.028 # kg/s
@@ -70,14 +102,16 @@ def propagate_dynamics(state, action, delta_t = inp.delta_t):
     if speed_norm < inp.min_speed:
         speed_norm = inp.min_speed
 
+    # Obtain mass from state
+    mass = state[4] # kg
     # Compute longitudinal acceleration based on current velocity, mass and throttle
     acceleration = get_acceleration(speed_norm, mass, action[0])
 
-    # Convert steering input into an angle, with a maximum angle of 15 deg
-    angle = - np.deg2rad(15) * action[1] # rad
-
     # Propagate mass using Euler integrator
     mass = mass - mass_flow_rate * delta_t * action[0] if action[0] >= 0 else mass
+
+    # Convert steering input into an angle, with a maximum angle of 15 deg
+    angle = - np.deg2rad(15) * action[1] # rad
 
     # Define threshold of minimum mass (0 kg) and update acceleration (0 m/s^2)
     if mass <= inp.vehicle_mass:
@@ -108,8 +142,8 @@ def propagate_dynamics(state, action, delta_t = inp.delta_t):
     # Compute normal acceleration in g's
     n = np.linalg.norm( [ acc_x_normal, acc_y_normal ] ) / 9.81 # g
 
-    # Return updated state
-    return [position[0], position[1], v[0], v[1], mass, a, n]
+    # Return updated state and accelerations (not part of the state)
+    return [position[0], position[1], v[0], v[1], mass], a, n
     
 
 def assess_termination(state, coordinates_in, coordinates_out, index, time):
@@ -121,8 +155,8 @@ def assess_termination(state, coordinates_in, coordinates_out, index, time):
 
     Parameters
     ----------
-    state: float array [1 x 7]
-        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], longitudinal and lateral acceleration [g], respectively
+    state: float array [1 x 5]
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], respectively
     coordinates_in: float array [2 x number_of_track_points]
         array of xy coordinates of the inner limits of the circuit
     coordinates_out: float array [2 x number_of_track_points]
@@ -211,9 +245,8 @@ def get_circuit_index(state, coordinates, circuit_index):
 
     Parameters
     ----------
-    state: float array [1 x 7]
-        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg],
-        longitudinal and lateral acceleration [g], respectively
+    state: float array [1 x 5]
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], respectively
     coordinates: float array [2 x number_of_track_points]
         array of xy coordinates of the curcuit's centre line
     curcuit_index: int
@@ -223,10 +256,13 @@ def get_circuit_index(state, coordinates, circuit_index):
     -------
     curcuit_index: int
         index of current position w.r.t. the coordinate array
-    normalised_travelled_distance: float
-        distance travelled from the last checkpoint, normalised from 0 to 10, where 10 is the maximum
-        before skipping to the next circuit index
     '''
+    
+    # Get position of last checkpoint
+    last_checkpoint = ( coordinates[ circuit_index ] - coordinates[0] ) * inp.circuit_factor
+
+    # Compute distance between car and last checkpoint
+    current_distance_to_origin = np.linalg.norm(state[:2] - last_checkpoint)
 
     # Compute horizontal distance between end of current track portion and starting position
     x_distance = ( coordinates[circuit_index + 1, 0] - coordinates[0,0] ) * inp.circuit_factor
@@ -241,29 +277,18 @@ def get_circuit_index(state, coordinates, circuit_index):
     # Compute total distance from car to checkpoint
     distance = np.linalg.norm([x_dif, y_dif]) # m
 
-    # Compute distance between checkpoints
-    distance_between_checkpoints_x = ( coordinates[circuit_index + 1, 0] - coordinates[circuit_index,0] ) * inp.circuit_factor
-    distance_between_checkpoints_y = ( coordinates[circuit_index + 1, 1] - coordinates[circuit_index,1] ) * inp.circuit_factor
-    distance_between_checkpoints = np.linalg.norm([distance_between_checkpoints_x, distance_between_checkpoints_y])
-
-    # Compute distance from previous checkpoint
-    distance_from_last_checkpoint = distance_between_checkpoints - distance
-
     # Assess if current car position is within a certain distance (tolerance defined in the inputs file)
     # of next track coordinates
     # if x_dif < inp.index_pos_tolerance and y_dif < inp.index_pos_tolerance:
     if distance < inp.index_pos_tolerance:
         # Increase index to indicate that car is in the next portion of the track
         circuit_index += 1
-    
-    # Compute normalised distance based on factors from input file
-    normalised_travelled_distance = inp.checkpoint_distance_normalisation_factor * ( distance_from_last_checkpoint / distance_between_checkpoints )
 
-    # Return index (which may or may not have been updated) and normalised travelled distance
-    return circuit_index, normalised_travelled_distance
+    # Return index (which may or may not have been updated) and current distance to origin
+    return circuit_index, current_distance_to_origin
 
 
-def get_reward(left_track, finish_line, normalised_travelled_distance):
+def get_reward(left_track, finish_line, previous_distance, current_distance, a, n):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -274,10 +299,15 @@ def get_reward(left_track, finish_line, normalised_travelled_distance):
     finish_line: bool
         Boolean indicating if the car has reached the finish line, in which case it is very very
         positively rewarded
-    normalised_travelled_distance: float
-        Travelled distance, normalised to range between 0 and 10. The farther the agent travels
-        (in the right direction), the higher the reward
-    
+    previous_distance: float
+        Distance, given in m, between car and last checkpoint at previous state
+    current_distance: float
+        Distance, given in m, between car and last checkpoint at current state
+    a: float
+        Longitudinal acceleration, given in m/s^2
+    n: float
+        Lateral (centripetal) acceleration, given in m/s^2
+
     Returns
     -------
     current_reward: float
@@ -286,10 +316,18 @@ def get_reward(left_track, finish_line, normalised_travelled_distance):
 
     '''
     # Initialise current reward, penalising agent by 1 point for each second that passes
-    current_reward = -inp.delta_t
+    current_reward = - inp.delta_t
     
     # Give incentive to move forward
-    current_reward += normalised_travelled_distance
+    delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
+
+    # Reset distance when new index is reached
+    # otherwise delta would cancel out everyting that
+    # was achieved before (e.g.: delta = - 400 m)
+    if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
+        delta_distance_travelled = 0
+
+    current_reward += delta_distance_travelled * inp.delta_distance_normalisation_factor
 
     # Penalise if car left track.
     if left_track:
@@ -299,10 +337,33 @@ def get_reward(left_track, finish_line, normalised_travelled_distance):
     if finish_line:
         current_reward += 1e3
         '''
-    
-    current_reward = normalised_travelled_distance
+
+    delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
+
+    # Reset distance when new index is reached
+    # otherwise delta would cancel out everyting that
+    # was achieved before (e.g.: delta = - 400 m)
+    if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
+        delta_distance_travelled = 0
+
+    current_reward = delta_distance_travelled * inp.delta_distance_normalisation_factor - inp.delta_t
 
     return current_reward
+
+
+
+def chance_of_noise(reward_history):
+    '''
+    TODO: Explain function
+    '''
+
+    if reward_history == []:
+        return 1
+    
+    if len(reward_history) > inp.batch_size:
+        reward_history = reward_history[-inp.batch_size:]
+
+    return np.exp( - np.var( reward_history ) )
 
 
 ###########################################

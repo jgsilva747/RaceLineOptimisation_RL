@@ -44,13 +44,13 @@ direction_factor = 5e-5
 circuit_factor = 1e5
 
 # Acceleration function parameters
-x1 = 5
-x2 = 7.3e-2
+x1 = 5 * 900
+x2 = 7.3e-2  * 900
 x3 = 55 # km/h
-x4 = 0.27
+x4 = 0.27  * 900
 
-# Normalisation factor for reward function (distance to next checkpoint)
-checkpoint_distance_normalisation_factor = 1/10
+# Normalisation factor for reward function (travelled distance in right direction)
+delta_distance_normalisation_factor = 1 / 10
 
 #########################
 # DDPG Inputs ###########
@@ -68,7 +68,7 @@ tau_critic = 0.001 # 0.001
 gamma=0.99 # 0.99
 directory = './'
 hidden1=20 # 20
-hidden2=40 # 64
+hidden2=64 # 64
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -79,14 +79,15 @@ seed = 0
 n_episodes = int( 1e6 )
 
 # Exploration fator
-exploration_factor = 2 # 1
+exploration_factor = 1 # 1
+
 # 2, 4e-2
 # Learning rate
-learning_rate_actor = 3e-3 # 3e-3
-learning_rate_critic = 4e-2 # 2e-2
+learning_rate_actor = 8e-4 # 8e-4 # 3e-3
+learning_rate_critic = 4e-2 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = True
+plot_episode = False
 # show reward and action plot
 plot_stats = False
 
