@@ -129,7 +129,7 @@ for episode in range(n_episodes):
         action = convert_action(action)
 
         # Propagate state
-        new_state, reward, done, acc = env.step(action)
+        new_state, reward, done, acc, travelled_distance = env.step(action)
 
         # Plot current position
         if inp.plot_episode:

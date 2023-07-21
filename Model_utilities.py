@@ -312,6 +312,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, a, 
     -------
     current_reward: float
         current reward, to be added to the total reward
+    delta_distance_travelled: float
+        travelled distance between time steps
     '''
 
     '''
@@ -348,22 +350,29 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, a, 
 
     current_reward = delta_distance_travelled * inp.delta_distance_normalisation_factor - inp.delta_t
 
-    return current_reward
+    return current_reward, delta_distance_travelled
 
 
 
-def chance_of_noise(reward_history):
+def chance_of_noise(reward_history, current_distance, max_distance):
     '''
     TODO: Explain function
     '''
 
     if reward_history == []:
-        return 1
+        return 1 # 100% chance of noise when there is no reward history
     
     if len(reward_history) > inp.batch_size:
-        reward_history = reward_history[-inp.batch_size:]
+        reward_history = reward_history[-inp.batch_size:] # Keep size of reward history batch constant
 
-    return np.exp( - np.var( reward_history ) )
+    n = 2 # NOTE: The larger the value of n, the lower the noise is when
+          #       current distance is smaller than max distance
+    
+    x = inp.noise_reduction_factor
+
+    factor = x if max_distance - current_distance > max(0.1 * max_distance, 30) else 1 # ( np.exp( n * current_distance / max_distance ) - 1 ) / ( np.exp( n ) - 1 )
+
+    return factor * np.exp( - np.var( reward_history ) )
 
 
 ###########################################

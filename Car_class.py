@@ -69,8 +69,9 @@ class CarEnvironment(gym.Env):
                     ]).astype(np.float32),
             )
         
-        # Auxiliar variable used in reward function
+        # Auxiliar variables used in reward function
         self.previous_distance_from_origin = 0
+        self.travelled_distance = 0
 
     def reset(self):
         # TODO: explain function
@@ -91,8 +92,9 @@ class CarEnvironment(gym.Env):
         self.circuit_index = 0 # index of car's current position in the coordinate array
         self.time = 0 # time, given in s
 
-        # Reset auxiliar variable used in reward function
+        # Reset auxiliar variables used in reward function
         self.previous_distance_from_origin = 0
+        self.travelled_distance  = 0
 
         return self.state, [self.a, self.n]
 
@@ -123,14 +125,16 @@ class CarEnvironment(gym.Env):
             self.circuit_index = new_circuit_index
 
         # Compute current reward
-        reward = util.get_reward(self.left_track,
-                                 self.finish_line,
-                                 self.previous_distance_from_origin,
-                                 current_distance_to_origin,
-                                 self.a,
-                                 self.n)
+        reward, delta_distance = util.get_reward(self.left_track,
+                                                 self.finish_line,
+                                                 self.previous_distance_from_origin,
+                                                 current_distance_to_origin,
+                                                 self.a,
+                                                 self.n)
 
         # Update "previous" distance to origin
         self.previous_distance_from_origin = current_distance_to_origin
 
-        return self.state, reward, self.done, [self.a, self.n]
+        self.travelled_distance += delta_distance
+
+        return self.state, reward, self.done, [self.a, self.n], self.travelled_distance 
