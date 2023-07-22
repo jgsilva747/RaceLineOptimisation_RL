@@ -354,7 +354,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, a, 
 
 
 
-def chance_of_noise(reward_history, current_distance, max_distance):
+def chance_of_noise(reward_history, current_distance, max_distance, max_count):
     '''
     TODO: Explain function
     '''
@@ -364,15 +364,19 @@ def chance_of_noise(reward_history, current_distance, max_distance):
     
     if len(reward_history) > inp.batch_size:
         reward_history = reward_history[-inp.batch_size:] # Keep size of reward history batch constant
-
-    n = 2 # NOTE: The larger the value of n, the lower the noise is when
-          #       current distance is smaller than max distance
     
     x = inp.noise_reduction_factor
 
-    factor = x if max_distance - current_distance > max(0.1 * max_distance, 30) else 1 # ( np.exp( n * current_distance / max_distance ) - 1 ) / ( np.exp( n ) - 1 )
+    distance_factor = x if max_distance - current_distance > max(0.1 * max_distance, 30) else 1 # ( np.exp( n * current_distance / max_distance ) - 1 ) / ( np.exp( n ) - 1 )
 
-    return factor * np.exp( - np.var( reward_history ) )
+    chance_of_noise = distance_factor * np.exp( - np.var( reward_history ) )
+
+    count_tol = 75
+
+    if max_count > count_tol:
+        chance_of_noise = min( 1 , chance_of_noise + ( max_count - count_tol ) / count_tol )
+
+    return chance_of_noise
 
 
 ###########################################

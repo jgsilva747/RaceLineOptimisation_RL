@@ -52,6 +52,9 @@ x4 = 0.27  * 900
 # Normalisation factor for reward function (travelled distance in right direction)
 delta_distance_normalisation_factor = 1 / 10
 
+# Braking distance
+braking_distance = 150 # m
+
 #########################
 # DDPG Inputs ###########
 #########################
@@ -62,7 +65,7 @@ capacity= int( 1e6 )
 batch_size = 64 # 64
 update_iteration = 100 # 200
 # tau for soft updating
-tau = 0.001 # 0.001   
+tau = 0.0005 # 0.001   
 
 gamma=0.99 # 0.99
 directory = './'
@@ -75,25 +78,21 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 seed = 0
 
 # Number of episodes
-n_episodes = int( 295 )
+n_episodes = int( 1e3 )
 
 # Exploration fator
 exploration_factor = 1 # 1
 
-# Noise reduction factor when trajectory is already learnt
-
-# NOTE: if set to 0, the agent will simply follow the
-#       learnt path until it reaches the maximum index,
-#       but then it will never update the learnt path.
-noise_reduction_factor = float( 0.05 )
+# Noise reduction factor
+noise_reduction_factor = 0.1
 
 # 2, 4e-2
 # Learning rate
-learning_rate_actor = 8e-4 # 8e-4 # 3e-3
+learning_rate_actor = 8e-4 # 6e-4 # 8e-4 # 3e-3
 learning_rate_critic = 4e-2 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = True
+plot_episode = False
 # show reward and action plot
 plot_stats = False
 
