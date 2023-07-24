@@ -48,7 +48,7 @@ class CarEnvironment(gym.Env):
         self.delta_heading_0 = 0
         self.delta_heaing = self.delta_heading_0
 
-        # Initialise list of curvatures # TODO: test
+        # Initialise list of curvatures
         self.curvature_list_0 = util.get_future_curvatures(coordinates, self.current_position, self.circuit_index)
         self.curvature_list = self.curvature_list_0
 

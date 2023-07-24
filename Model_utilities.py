@@ -177,7 +177,7 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
     # If none of the above cases was activated, then the simulation should not be terminated
     return False, False, False
 
-def get_circuit_index(position, coordinates, circuit_index, strict = False):
+def get_circuit_index(position, coordinates, circuit_index):
     '''
     Obtain index of current track coordinate w.r.t. the coordinate array
 
@@ -195,37 +195,23 @@ def get_circuit_index(position, coordinates, circuit_index, strict = False):
     curcuit_index: int
         index of current position w.r.t. the coordinate array
     '''
-    
-    if strict:
-        tolerance = 1
-    else:
-        tolerance = inp.index_pos_tolerance
 
     # Get position of last checkpoint
-    last_checkpoint = ( coordinates[ circuit_index ] - coordinates[0] )
+    last_checkpoint = coordinates[ circuit_index ]
+
+    # Get position of next checkpoint
+    next_checkpoint = coordinates[ circuit_index + 1 ]
 
     # Compute distance between car and last checkpoint
     current_distance_to_last_checkpoint = np.linalg.norm(position - last_checkpoint)
 
-    # Compute horizontal distance between end of current track portion and starting position
-    x_distance = ( coordinates[circuit_index + 1, 0] - coordinates[0,0] )
-    # Compute vertical distance between end of current track portion and starting position
-    y_distance = ( coordinates[circuit_index + 1, 1] - coordinates[0,1] )
+    # Compute distance between checkpoints
+    distance_between_checkpoints = np.linalg.norm( next_checkpoint - last_checkpoint )
 
-    # Compute horizontal distance from car to checkpoint
-    x_dif = np.absolute( x_distance - position[0])
-    # Compute vertical distance from car to checkpoint
-    y_dif = np.absolute( y_distance - position[1])
-
-    # Compute total distance from car to checkpoint
-    distance = np.linalg.norm([x_dif, y_dif]) # m
-
-    # Assess if current car position is within a certain distance (tolerance defined in the inputs file)
-    # of next track coordinates
-    # if x_dif < inp.index_pos_tolerance and y_dif < inp.index_pos_tolerance:
-    if distance < tolerance:
-        # Increase index to indicate that car is in the next portion of the track
+    # Check if index requires update
+    if current_distance_to_last_checkpoint > distance_between_checkpoints:
         circuit_index += 1
+
 
     # Return index (which may or may not have been updated) and current distance to last checkpoint
     return circuit_index, current_distance_to_last_checkpoint
@@ -265,8 +251,6 @@ def get_closest_point(coordinates, position, id):
         # Compute difference gradient
         gradient = ( new_error - old_error ) / ( new_pos[0] - old_pos[0] )
 
-        print(f'Old error: {old_error}  New error: {new_error}  Old x: {old_pos[0]}  New x: {new_pos[0]}')
-
         # Update positions
         aux = new_pos
         new_pos = old_pos - ( old_error / gradient ) * perpendicular_track_direction / perpendicular_track_direction[0] # FIXME: might have problems with slope = 0 or x = 0
@@ -278,8 +262,8 @@ def get_closest_point(coordinates, position, id):
 
         count += 1
 
-    
     return new_pos
+
 
 def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, delta_sample = 10):
     '''
@@ -305,13 +289,13 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
     '''
 
     # Find closest (interpolated) point in centre line
-    starting_point = get_closest_point(coordinates, position, circuit_index) # TODO: test
+    starting_point = get_closest_point(coordinates, position, circuit_index)
     # assume it returns xy coordinates of closes point along centre line
 
     # Initialise future curvatures array
     future_curvatures = [] # np.zeros((10))
 
-    # Compute unit track direction # FIXME: will have problems when agent reaches last index
+    # Compute unit track direction # FIXME: might have problems when agent reaches last index
     track_direction = lambda id : ( coordinates[id + 1] - coordinates[id] ) / np.linalg.norm( coordinates[id + 1] - coordinates[id] )
 
     # Initial track direction
@@ -322,23 +306,18 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
     current_point = starting_point
     current_index = circuit_index
 
-    for _ in range( n_samples ):
+    for foo in range( n_samples ):
 
         # Compute next point
         current_track_direction = track_direction(current_index)
         next_point = current_point + current_track_direction * delta_sample
 
-        # Compute distance to next portion of the track (to update circuit_index)
-        old_distance_to_end = np.linalg.norm( current_point - coordinates[circuit_index + 1] )
-        current_distance_to_end = np.linalg.norm( next_point - coordinates[circuit_index + 1] )
-
         # Update current point
         current_point = next_point
 
-        # Check if both points are within delta_sample + small_margin of next index
-        if current_distance_to_end < delta_sample + 1 and old_distance_to_end < delta_sample + 1:
-            # Update index
-            current_index += 1
+        # Get index of current point
+        current_index , _ = get_circuit_index(current_point, coordinates, current_index)
+
 
         # Get current angle of track
         current_direction = current_track_direction
@@ -355,7 +334,7 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
 
         future_curvatures.append( relative_angle ) # [sample] = relative_angle # negative angle means left, positive angle means right
 
-    return future_curvatures # TODO: test this function!
+    return future_curvatures
 
 
 
