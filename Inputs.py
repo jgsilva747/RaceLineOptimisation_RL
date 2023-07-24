@@ -18,6 +18,9 @@ braking_acceleration = 5.5 # g
 # Define tolerance used to update track coordinate index
 index_pos_tolerance = 6 # m
 
+# Margin to end simulation when car leaves track (in meters)
+left_track_margin = 0
+
 # Define minimum speed
 min_speed = 0.1 # m/s
 
@@ -55,6 +58,9 @@ delta_distance_normalisation_factor = 1 / 10
 # Braking distance
 braking_distance = 150 # m
 
+# Plotting (true or false)
+plotting = False
+
 #########################
 # DDPG Inputs ###########
 #########################
@@ -81,7 +87,7 @@ seed = 0
 n_episodes = int( 1e3 )
 
 # Exploration fator
-exploration_factor = 1 # 1
+exploration_factor = 0.3 # 1
 
 # Noise reduction factor
 noise_reduction_factor = 0.1

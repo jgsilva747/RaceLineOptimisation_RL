@@ -58,18 +58,6 @@ Possible actions:
 [1] -1: turn left; 0: go straight; 1: turn right
 '''
 
-##########################################################
-# TODO: define following set of variables in inputs file #
-# Number of episodes
-n_episodes = 500
-# Factor to update Q(s,a)
-alpha = 0.5
-# Randomness factor
-eps = 0
-# Importance of future rewards (discount factor)
-gamma = 0.9
-##########################################################
-
 # Initialise score history array
 score_hist=[]
 
@@ -95,10 +83,39 @@ action = [1, 0]
 
 ##########################################################
 # OVERWRITE ACTION_DIM TO MAKE DISCRETE MODEL ############
-action_dim = 1                                           #
-action_list = np.arange(0, 10)                           #
+action_dim = 2                                           #
+action_list = np.arange(0, 5)                            #
 ##########################################################
 
+##########################################################
+# SARSA SETUP ############################################
+##########################################################
+
+norm_array = [ 10 , 10 , 2 , 2 , 10 ]
+state_dim_1 = int( ( env.observation_space.high[ 0 ] - env.observation_space.low[ 0 ] ) / norm_array[0] )
+state_dim_2 = int( ( env.observation_space.high[ 1 ] - env.observation_space.low[ 1 ] ) / norm_array[1] )
+state_dim_3 = int( ( env.observation_space.high[ 2 ] - env.observation_space.low[ 2 ] ) / norm_array[2] )
+state_dim_4 = int( ( env.observation_space.high[ 3 ] - env.observation_space.low[ 3 ] ) / norm_array[3] )
+state_dim_5 = int( ( env.observation_space.high[ 4 ] - env.observation_space.low[ 4 ] ) / norm_array[4] )
+
+Q = np.zeros((state_dim_1, state_dim_2, state_dim_3, state_dim_4, state_dim_5, 5, 5))
+policy = np.random.randint(action_list[0], action_list[-1], (2, state_dim_1, state_dim_2, state_dim_3, state_dim_4, state_dim_5))
+
+##########################################################
+# TODO: define following set of variables in inputs file
+# Number of episodes
+n_episodes = int(1e5)
+# Factor to update Q(s,a)
+alpha = 0.5
+# Randomness factor
+eps = 1
+# Importance of future rewards (discount factor)
+gamma = 0.9
+##########################################################
+
+# Variable used to get index of state within policy and Q:
+state_0, _ =  env.reset()
+get_index = - state_0
 
 ##########################################################
 # RUNNING EPISODES #######################################
@@ -107,8 +124,22 @@ action_list = np.arange(0, 10)                           #
 # Run episodes
 for episode in range(n_episodes):
 
+    if episode > 5e4:
+        eps = 0
+    elif episode > 2e4:
+        eps = 0.05
+    elif episode > 5e3:
+        eps = 0.15
+
     # Define initial state and accelerations
     state, acc = env.reset()
+
+    index_array = ( state + get_index ) 
+    index_array = ( index_array / norm_array ).astype(int)
+
+    # Initialise random action
+    action_discrete = policy[ : , index_array[0] , index_array[1] , index_array[2] , index_array[3] , index_array[4] ]
+    action = convert_action(action_discrete)
 
     # Initialise auxiliar propagation varaibles
     done = False # termination flag
@@ -124,12 +155,8 @@ for episode in range(n_episodes):
     # Run episode until termination
     while not done:
 
-        # TODO: pick action; add noise to action
-        action = random.randint(0,9)
-        action = convert_action(action)
-
         # Propagate state
-        new_state, reward, done, acc, travelled_distance = env.step(action)
+        new_state, reward, done, acc, current_distance = env.step(action)
 
         # Plot current position
         if inp.plot_episode:
@@ -137,9 +164,78 @@ for episode in range(n_episodes):
 
         total_reward += reward
 
-        # TODO: something using state, new_state, reward, action
+        # Get indeces
+        # State
+        state_index = ( state + get_index )
+        state_index = ( state_index / norm_array ).astype(int)
+        # New State
+        new_state_index = ( new_state + get_index )
+        new_state_index = ( new_state_index / norm_array ).astype(int)
+        # Action
+        action_index = action_discrete
 
-    print("Episode: {}  Total Reward: {:0.2f}".format( episode + 1, total_reward))
+        current_Q = Q[ state_index[0],
+                       state_index[1],
+                       state_index[2],
+                       state_index[3],
+                       state_index[4],
+                       action_discrete[0],
+                       action_discrete[1] ]
+        
+        next_Q = Q[ new_state_index[0],
+                    new_state_index[1],
+                    new_state_index[2],
+                    new_state_index[3],
+                    new_state_index[4],
+                    action_discrete[0],
+                    action_discrete[1] ]
+
+        # Update Q(s,a)
+        Q[ state_index[0],
+           state_index[1],
+           state_index[2],
+           state_index[3],
+           state_index[4],
+           action_discrete[0],
+           action_discrete[1] ] = current_Q + alpha * ( reward + gamma * next_Q - current_Q )
+        
+        # Update policy
+        if random.uniform(0,1) < eps:
+            # Apply random policy
+            policy[:,
+                   state_index[0],
+                   state_index[1],
+                   state_index[2],
+                   state_index[3],
+                   state_index[4]] = np.random.randint(action_list[0], action_list[-1], 2)
+        else:
+            # Apply greedy policy
+
+            # Find flattened index of maximum Q
+            max_index_flat = np.argmax(Q[ state_index[0],
+                                          state_index[1],
+                                          state_index[2],
+                                          state_index[3],
+                                          state_index[4],
+                                          : ,
+                                          : ])
+            
+            # Convert flattened index to 2D indexes
+            policy[:,
+                   state_index[0],
+                   state_index[1],
+                   state_index[2],
+                   state_index[3],
+                   state_index[4]] = np.unravel_index(max_index_flat, Q.shape[-2:])
+             
+
+        # Next action
+        action_discrete = policy[ : , new_state_index[0] , new_state_index[1] , new_state_index[2] , new_state_index[3] , new_state_index[4] ]
+        action = convert_action(action_discrete)
+
+        state = new_state
+
+    print("Episode: {}  Total Reward: {:0.2f}  Max distance: {:0.2f}".format( episode + 1, total_reward, current_distance), end='\r')
     score_hist.append(total_reward)
 
     # Plot reward evolution

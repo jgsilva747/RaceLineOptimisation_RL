@@ -42,11 +42,7 @@ def convert_action(action):
 
 def get_acceleration(speed, mass, throttle):
     '''
-    Computes acceleration of car based on current state and throttle
-    due to engine / braking. The output of this acceleration does not
-    include centripetal accelerations, and is given in the direction
-    of the wheels. In order to convert it to an n-t coordinate system,
-    it needs to be multiplied by cosine and sine of the wheel angle.
+    Computes longitudinal acceleration of car based on current state and throttle
 
     Parameters
     ----------
@@ -65,7 +61,7 @@ def get_acceleration(speed, mass, throttle):
 
     # Compute acceleration when braking
     if throttle <= 0:
-        acc = inp.braking_acceleration * 9.81 * speed / (360/3.6)
+        acc = inp.braking_acceleration * 9.81
     # Compute acceleration when accelerating
     else:
         # profile based on empirical data
@@ -108,15 +104,14 @@ def propagate_dynamics(state, action, delta_t = inp.delta_t):
 
     # Obtain mass from state
     mass = state[4] # kg
-
-    # Convert steering input into an angle, with a maximum angle of 15 deg
-    angle = - np.deg2rad(15) * action[1] # rad
-
     # Compute longitudinal acceleration based on current velocity, mass and throttle
     acceleration = get_acceleration(speed_norm, mass, action[0])
 
     # Propagate mass using Euler integrator
     mass = mass - mass_flow_rate * delta_t * action[0] if action[0] >= 0 else mass
+
+    # Convert steering input into an angle, with a maximum angle of 15 deg
+    angle = - np.deg2rad(15) * action[1] # rad
 
     # Define threshold of minimum mass (0 kg) and update acceleration (0 m/s^2)
     if mass <= inp.vehicle_mass:
@@ -151,7 +146,7 @@ def propagate_dynamics(state, action, delta_t = inp.delta_t):
     return [position[0], position[1], v[0], v[1], mass], a, n
     
 
-def assess_termination(position, coordinates_in, coordinates_out, index, time, margin = inp.left_track_margin):
+def assess_termination(state, coordinates_in, coordinates_out, index, time):
     '''
     Assess if simulation should end.
     This is done by checking if the car is within track limits, if the car
@@ -160,8 +155,8 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
 
     Parameters
     ----------
-    position: float array [1 x 2]
-        Position array, containing: x and y position [m], respectively
+    state: float array [1 x 5]
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], respectively
     coordinates_in: float array [2 x number_of_track_points]
         array of xy coordinates of the inner limits of the circuit
     coordinates_out: float array [2 x number_of_track_points]
@@ -193,9 +188,9 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
         # Compute angle/direction of current portion of the track in the xy frame (in degrees)
         angle = np.rad2deg(math.atan2(coordinates_out[index+1,1] - coordinates_out[index,1], coordinates_out[index+1,0] - coordinates_out[index,0]))
         
-        # Define x and y positions
-        x = position[0]
-        y = position[1]
+        # Extract x and y positions from state array
+        x = state[0]
+        y = state[1]
 
         # Define track's current inner portion's xy coordinates (as a rectangle)
         x_2_in = coordinates_in[index + 1,0]
@@ -219,10 +214,10 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
 
             # Check if y position exceeded track limits
             if y_out > y_in:
-                if y > y_out + margin or y < y_in - margin:
+                if y > y_out or y < y_in:
                     return True, True, False # end simulation
             else:
-                if y < y_out - margin or y > y_in + margin:
+                if y < y_out or y > y_in:
                     return True, True, False # end simulation
 
         # If current portion is (mostly) vertical, check if x (horizontal) position was exceeded
@@ -235,23 +230,23 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
 
             # Check if x position exceeded track limits
             if x_out > x_in:
-                if x > x_out + margin or x < x_in - margin:
+                if x > x_out or x < x_in:
                     return True, True, False # end simulation
             else:
-                if x < x_out - margin or x > x_in + margin:
+                if x < x_out or x > x_in:
                     return True, True, False # end simulation
 
     # If none of the above cases was activated, then the simulation should not be terminated
     return False, False, False
 
-def get_circuit_index(position, coordinates, circuit_index):
+def get_circuit_index(state, coordinates, circuit_index):
     '''
     Obtain index of current track coordinate w.r.t. the coordinate array
 
     Parameters
     ----------
-    position: float array [1 x 2]
-        Position array, containing: x and y position [m], respectively
+    state: float array [1 x 5]
+        State array, containing: x and y position [m], x and y velocity [m/s], mass [kg], respectively
     coordinates: float array [2 x number_of_track_points]
         array of xy coordinates of the curcuit's centre line
     curcuit_index: int
@@ -264,20 +259,20 @@ def get_circuit_index(position, coordinates, circuit_index):
     '''
     
     # Get position of last checkpoint
-    last_checkpoint = ( coordinates[ circuit_index ] - coordinates[0] )
+    last_checkpoint = ( coordinates[ circuit_index ] - coordinates[0] ) * inp.circuit_factor
 
     # Compute distance between car and last checkpoint
-    current_distance_to_origin = np.linalg.norm(position - last_checkpoint)
+    current_distance_to_origin = np.linalg.norm(state[:2] - last_checkpoint)
 
     # Compute horizontal distance between end of current track portion and starting position
-    x_distance = ( coordinates[circuit_index + 1, 0] - coordinates[0,0] )
+    x_distance = ( coordinates[circuit_index + 1, 0] - coordinates[0,0] ) * inp.circuit_factor
     # Compute vertical distance between end of current track portion and starting position
-    y_distance = ( coordinates[circuit_index + 1, 1] - coordinates[0,1] )
+    y_distance = ( coordinates[circuit_index + 1, 1] - coordinates[0,1] ) * inp.circuit_factor
 
     # Compute horizontal distance from car to checkpoint
-    x_dif = np.absolute( x_distance - position[0])
+    x_dif = np.absolute( x_distance - state[0])
     # Compute vertical distance from car to checkpoint
-    y_dif = np.absolute( y_distance - position[1])
+    y_dif = np.absolute( y_distance - state[1])
 
     # Compute total distance from car to checkpoint
     distance = np.linalg.norm([x_dif, y_dif]) # m
@@ -291,89 +286,6 @@ def get_circuit_index(position, coordinates, circuit_index):
 
     # Return index (which may or may not have been updated) and current distance to origin
     return circuit_index, current_distance_to_origin
-
-
-def get_closest_point(coordinates, position, circuit_index):
-    # TODO: explain
-
-    pass # TODO: complete function
-
-
-def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, delta_sample = 5):
-    '''
-    Compute the 10 future (relative) curvatures of the track, computed at an interval of 5 m
-
-    Parameters
-    ----------
-    coordinates: float array [2 x number_of_track_points]
-        array of xy coordinates of the curcuit's centre line
-    position: float array [1 x 2]
-        Position array, containing: x and y position [m], respectively
-    circuit_index: int
-        index of current position w.r.t. the coordinate array
-    n_samples: int
-        number of samples of future curvatures
-    delta_sample: float
-        distance, in meters, between each measurement
-
-    Returns
-    -------
-    future_curvatures: float array [1 x n_samples]
-        array containing the future curvatures of the track, in radians
-    '''
-
-    # Find closest (interpolated) point in centre line
-    starting_point = get_closest_point(coordinates, position, circuit_index) # TODO: everything
-    # assume it returns xy coordinates of closes point along centre line
-
-    # Initialise future curvatures array
-    future_curvatures = np.zeros((10))
-
-    # Compute unit track direction # FIXME: might have problems when agent reaches last index
-    track_direction = lambda id : ( coordinates[id + 1] - coordinates[id] ) / np.linalg.norm( coordinates[id + 1] - coordinates[id] )
-
-    # Initial track direction
-    initial_direction = track_direction( circuit_index )
-    initial_angle = np.arctan2( initial_direction[0] , initial_direction[1] )
-
-    # Initialise loop
-    current_point = starting_point
-    current_index = circuit_index
-
-    for sample in range( n_samples ):
-
-        # Compute next point
-        next_point = current_point + delta_sample * track_direction(current_index)
-
-        # Compute distance to next portion of the track (to update circuit_index)
-        old_distance_to_end = np.linalg.norm( current_point - coordinates[circuit_index + 1] )
-        current_distance_to_end = np.linalg.norm( next_point - coordinates[circuit_index + 1] )
-        # Check if both points are within delta_sample + small_margin of next index
-        if current_distance_to_end < delta_sample + 1 and old_distance_to_end < delta_sample + 1:
-            # Update index
-            current_index += 1
-
-        # Get current angle of track
-        current_direction = track_direction(current_index)
-        current_angle = np.arctan2( current_direction[0] , current_direction[1] )
-
-        # Store difference between current angle and initial angle
-        relative_angle = current_angle - initial_angle
-
-        # Check if relative angle is within [-pi, pi]
-        if relative_angle > np.pi:
-            relative_angle -= 2 * np.pi
-        elif relative_angle < -np.pi:
-            relative_angle += 2 * np.pi
-
-        future_curvatures[sample] = relative_angle
-
-    return future_curvatures # TODO: test this function!
-
-
-
-def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_position, circuit_index):
-    pass
 
 
 def get_reward(left_track, finish_line, previous_distance, current_distance, a, n):
@@ -530,4 +442,3 @@ for i in range(len(coordinates)):
     # Compute inner and outter limits of circuit
     coordinates_in[i] = (coordinates[i] - direction  - start) * circuit_factor
     coordinates_out[i] = (coordinates[i] + direction  - start) * circuit_factor
-    coordinates[i] = ( coordinates[i] - start ) * circuit_factor

@@ -9,9 +9,9 @@ matplotlib.rcParams.update({'font.size':12})
 # File imports
 import Inputs as inp
 import DDPG_classes as ddpg
-import Model_utilities as util
-from Model_utilities import coordinates_in, coordinates_out
-from Car_class import CarEnvironment
+import Model_utilities_outdated as util
+from Model_utilities_outdated import coordinates_in, coordinates_out
+from Car_class_outdated import CarEnvironment
 
 
 if __name__ ==  '__main__':
@@ -64,7 +64,7 @@ if __name__ ==  '__main__':
     # for i in range(inp.n_episodes):
     while max_count < int( 1e2 ):
         total_reward = 0
-        state, current_position = env.reset()
+        state, acc = env.reset()
         done = False
 
         agent_action = []
@@ -81,11 +81,11 @@ if __name__ ==  '__main__':
             agent_action.append( action )
 
             # Add Gaussian noise to actions for exploration
-            action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
+            action = (action + noise_flag * exploration_factor * np.random.normal(0, 1, size=action_dim)).clip(-max_action, max_action)
 
             # Add OU noise
             # action += noise_flag * ou_noise.sample()
-            next_state, reward, done, current_position, current_distance = env.step(action)
+            next_state, reward, done, acc, current_distance = env.step(action)
             total_reward += reward
             # if render and i >= render_interval : env.render()
             agent.replay_buffer.push((state, next_state, action, reward, float(done)))
@@ -153,7 +153,7 @@ if __name__ ==  '__main__':
     # Apply tight layout to figure
     plt.tight_layout()
 
-    state, current_position = env.reset()
+    state, acc = env.reset()
     done = False
 
     agent_action = []
@@ -168,7 +168,7 @@ if __name__ ==  '__main__':
         action = agent.select_action(state)
         agent_action.append( action )
 
-        next_state, reward, done, current_position, current_distance = env.step(action)
+        next_state, reward, done, acc, current_distance = env.step(action)
 
         state = next_state        
 

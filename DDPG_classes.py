@@ -105,7 +105,65 @@ class Replay_buffer():
 
         return np.array(state), np.array(next_state), np.array(action), np.array(reward).reshape(-1, 1), np.array(done).reshape(-1, 1)
     
+class PrioritizedReplayBuffer:
+    def __init__(self, capacity=inp.capacity, alpha=0.6, beta=0.4, beta_annealing_steps=1000):
+        self.capacity = capacity
+        self.alpha = alpha
+        self.beta = beta
+        self.beta_annealing_steps = beta_annealing_steps
+        self.storage = []
+        self.priorities = np.zeros(capacity)
+        self.index = 0
+        self.size = 0
 
+    def push(self, state, next_state, action, reward, done):
+        if self.size < self.capacity:
+            self.size += 1
+        else:
+            self.index = (self.index + 1) % self.capacity
+
+        priority = np.max(self.priorities) if self.size > 0 else 1.0
+        self.storage.append((state, next_state, action, reward, done))
+        self.priorities[self.index] = priority
+
+    def update_priorities(self, indices, td_errors):
+        priorities = np.abs(td_errors) + 1e-6  # Add a small constant to avoid zero priorities
+        for idx, priority in zip(indices, priorities):
+            self.priorities[idx] = priority
+
+    def sample(self, batch_size):
+        priorities = self.priorities[:self.size]
+        probabilities = priorities ** self.alpha
+        probabilities /= np.sum(probabilities)
+
+        ind = np.random.choice(self.size, batch_size, replace=False, p=probabilities)
+        state, next_state, action, reward, done = [], [], [], [], []
+
+        for i in ind:
+            st, n_st, act, rew, dn = self.storage[i]
+            state.append(np.array(st, copy=False))
+            next_state.append(np.array(n_st, copy=False))
+            action.append(np.array(act, copy=False))
+            reward.append(np.array(rew, copy=False))
+            done.append(np.array(dn, copy=False))
+
+        sampling_probabilities = priorities[ind] / np.sum(priorities)
+        weights = (1 / (self.size * sampling_probabilities)) ** self.beta
+        weights /= np.max(weights)  # Normalize the weights
+        weights = torch.tensor(weights, dtype=torch.float32)
+
+        return (
+            np.array(state),
+            np.array(next_state),
+            np.array(action),
+            np.array(reward).reshape(-1, 1),
+            np.array(done).reshape(-1, 1),
+            weights,
+            ind,
+        )
+
+    def __len__(self):
+        return self.size
 
 
 class Actor(nn.Module):
