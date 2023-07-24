@@ -1,10 +1,8 @@
 # General imports
 import numpy as np
-import os
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams.update({'font.size':12})
-import torch
 
 # File imports
 import Inputs as inp

@@ -15,7 +15,6 @@ from Car_class import CarEnvironment
 
 
 if __name__ ==  '__main__':
-
     # Define the environment in the RL library.
     env = CarEnvironment()
 
@@ -62,7 +61,8 @@ if __name__ ==  '__main__':
 
     # Train the agent for max_episodes
     # for i in range(inp.n_episodes):
-    while max_count < int( 1e2 ):
+    # while max_count < int( 1e2 ):
+    for i in range(500):
         total_reward = 0
         state, current_position = env.reset()
         done = False
@@ -71,17 +71,17 @@ if __name__ ==  '__main__':
 
         # Plot initial position
         if inp.plot_episode:
-            ax.scatter(state[0], state[1], marker='.',  color = 'b', linewidths=0.01)
+            ax.scatter(current_position[0], current_position[1], marker='.',  color = 'b', linewidths=0.01)
 
         # Run episode
         while not done:
 
             # Obtain action from agent NN
-            action = agent.select_action(state)
+            action = [0,0] # agent.select_action(state)
             agent_action.append( action )
 
             # Add Gaussian noise to actions for exploration
-            action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
+            # action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
 
             # Add OU noise
             # action += noise_flag * ou_noise.sample()

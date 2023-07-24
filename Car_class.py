@@ -25,14 +25,11 @@ class CarEnvironment(gym.Env):
         self.mass = self.mass_0
 
         # Define initial position
-        self.initial_position = [ 0 , 0 ]
+        self.initial_position = np.array([ 0 , 0 ])
         self.current_position = self.initial_position
 
         # Define initial velocity 
         self.v_0 = inp.initial_velocity / 3.6 # m/s
-        self.v_direction = coordinates[1] - coordinates[0]
-        self.v_xy_0 = self.v_0 * self.v_direction / np.linalg.norm(self.v_direction)
-        self.v_xy = self.v_xy_0
 
         # Initialise auxiliar propagation variables
         self.time = 0
@@ -40,22 +37,24 @@ class CarEnvironment(gym.Env):
         self.circuit_index = 0
 
         # tangential acceleration
-        self.a_0 = util.get_acceleration(np.linalg.norm([self.v_0[0], self.v_0[1]]), self.mass_0, 1 ) / 9.81 # in g
-        self.a = self.a_0
+        self.a_0 = util.get_acceleration( self.v_0, self.mass_0, 1 ) / 9.81 # in g
         # normal acceleration
         self.n_0 = 0
-        self.n = self.n_0
+
+        # Initialise delta_heading
+        self.delta_heading_0 = 0
+        self.delta_heaing = self.delta_heading_0
 
         # Initialise list of curvatures # TODO: test
         self.curvature_list_0 = util.get_future_curvatures(coordinates, self.current_position, self.circuit_index)
         self.curvature_list = self.curvature_list_0
 
-        # Initialise LIDAR samples # TODO: everything
+        # Initialise LIDAR samples # TODO: test
         self.lidar_samples_0 = util.get_lidar_samples(coordinates, coordinates_in, coordinates_out, self.current_position, self.circuit_index)
         self.lidar_samples = self.lidar_samples_0
 
         # Initialise track limits bool
-        self.track_limits_0 = False # True if track limits are exceeded
+        self.track_limits_0 = float( False ) # True if track limits are exceeded
         self.track_limits = self.track_limits_0
 
         # Define action space
@@ -124,14 +123,15 @@ class CarEnvironment(gym.Env):
             )
         
         # Auxiliar variables used in reward function
-        self.previous_distance_from_origin = 0
+        self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance = 0
 
         # Bool to define if plots are to be created
         self.plotting = inp.plotting
 
         # Define initial state
-        self.state_0 = [self.v_0, self.a_0, self.n_0, self.curvature_list_0, self.lidar_samples_0, self.track_limits_0]
+        self.state_0 = [self.v_0, self.a_0, self.n_0, self.delta_heading_0, self.curvature_list_0, self.lidar_samples_0, self.track_limits_0]
+        print(self.state_0)
         self.state_0 = np.array( self.state_0 )
 
     def reset(self):
@@ -153,7 +153,7 @@ class CarEnvironment(gym.Env):
         self.time = 0 # time, given in s
 
         # Reset auxiliar variables used in reward function
-        self.previous_distance_from_origin = 0
+        self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance  = 0
 
         return self.state, self.current_position
@@ -161,14 +161,26 @@ class CarEnvironment(gym.Env):
     def step(self, action):
         # TODO: explain function
 
-        # Propagate state # TODO
-        new_state, new_position, new_mass = util.propagate_dynamics(self.state, self.current_position, action, inp.delta_t)
+        # Track direction
+        track_direction = coordinates[self.circuit_index + 1] - coordinates[self.circuit_index]
+        track_direction = track_direction / np.linalg.norm(track_direction)
+
+        # Propagate state
+        new_state, new_position, new_mass = util.propagate_dynamics(self.state,
+                                                                    self.current_position,
+                                                                    self.mass,
+                                                                    track_direction,
+                                                                    action,
+                                                                    coordinates,
+                                                                    coordinates_in,
+                                                                    coordinates_out,
+                                                                    self.circuit_index)
 
         # Update time
         self.time += inp.delta_t
 
         # Update track position index
-        new_circuit_index, current_distance_to_origin = util.get_circuit_index(new_position, coordinates, self.circuit_index)
+        new_circuit_index, current_distance_to_last_checkpoint = util.get_circuit_index(new_position, coordinates, self.circuit_index)
 
         # Check termination condition
         self.done, self.left_track, self.finish_line = util.assess_termination(new_position,
@@ -176,6 +188,9 @@ class CarEnvironment(gym.Env):
                                                                                coordinates_out,
                                                                                new_circuit_index,
                                                                                self.time)
+        
+        # Update last state entry (containing float representation of bool that indicates if car left the track)
+        new_state[-1] = float(self.left_track)
 
         # Update state
         self.state = np.array( new_state )
@@ -191,12 +206,12 @@ class CarEnvironment(gym.Env):
         # Compute current reward
         reward, delta_distance = util.get_reward(self.left_track,
                                                  self.finish_line,
-                                                 self.previous_distance_from_origin,
-                                                 current_distance_to_origin)
+                                                 self.previous_distance_to_last_checkpoint,
+                                                 current_distance_to_last_checkpoint)
 
   
-        # Update "previous" distance to origin
-        self.previous_distance_from_origin = current_distance_to_origin
+        # Update previous distance to last checkpoint
+        self.previous_distance_to_last_checkpoint = current_distance_to_last_checkpoint
 
         self.travelled_distance += delta_distance
 
