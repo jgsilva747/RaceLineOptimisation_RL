@@ -61,7 +61,7 @@ if __name__ ==  '__main__':
     # Train the agent for max_episodes
     # for i in range(inp.n_episodes):
     # while max_count < int( 1e2 ):
-    for i in range(500):
+    for i in range(1):
         total_reward = 0
         state, current_position = env.reset()
         done = False
@@ -74,12 +74,10 @@ if __name__ ==  '__main__':
 
         # Run episode
         while not done:
-
-            print("Step")
-
             # Obtain action from agent NN
-            action = [0,0] # agent.select_action(state)
+            action = [1,1] # agent.select_action(state)
             agent_action.append( action )
+            print("\n")
 
             # Add Gaussian noise to actions for exploration
             # action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
@@ -97,7 +95,9 @@ if __name__ ==  '__main__':
 
             # Plot final position
             if inp.plot_episode:
-                ax.scatter(state[0], state[1], marker='.', color = 'b', linewidths=0.01)
+                ax.scatter(current_position[0], current_position[1], marker='.', color = 'b', linewidths=0.01)
+                # print(f"Future curvatures: {np.rad2deg(state[4:14])}")
+                plt.pause(1/60)
 
         
         agent_action = np.array(agent_action)    
@@ -159,21 +159,25 @@ if __name__ ==  '__main__':
 
     agent_action = []
 
+    print("Running")
+
     # Plot initial position
-    ax.scatter(state[0], state[1], marker='.',  color = 'b', linewidths=0.01)
+    ax.scatter(current_position[0], current_position[1], marker='.',  color = 'b', linewidths=0.01)
 
     # Run episode
     while not done:
-
+        print("Inside while")
         # Obtain action from agent NN
         action = agent.select_action(state)
         agent_action.append( action )
-
+        print(action)
+        print("Stuck in step?")
         next_state, reward, done, current_position, current_distance = env.step(action)
-
+        print("No")
+        print(next_state)
         state = next_state        
 
-        ax.scatter(state[0], state[1], marker='.', color = 'b', linewidths=0.01)
+        ax.scatter(current_position[0], current_position[1], marker='.', color = 'b', linewidths=0.01)
 
     agent_action = np.array(agent_action)    
 

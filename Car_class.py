@@ -30,6 +30,9 @@ class CarEnvironment(gym.Env):
 
         # Define initial velocity 
         self.v_0 = inp.initial_velocity / 3.6 # m/s
+        track_direction = (coordinates[1] - coordinates[0]) / np.linalg.norm(coordinates[1] - coordinates[0])
+        self.v_xy_0 = self.v_0 * track_direction
+        self.v_xy = self.v_xy_0
 
         # Initialise auxiliar propagation variables
         self.time = 0
@@ -142,6 +145,8 @@ class CarEnvironment(gym.Env):
         self.current_position = self.initial_position
         # mass
         self.mass = self.mass_0
+        # velocity
+        self.v_xy = self.v_xy_0
 
         # Reset auxiliar propagation varaibles
         self.done = False # termination flag
@@ -162,15 +167,16 @@ class CarEnvironment(gym.Env):
         track_direction = track_direction / np.linalg.norm(track_direction)
 
         # Propagate state
-        new_state, new_position, new_mass = util.propagate_dynamics(self.state,
-                                                                    self.current_position,
-                                                                    self.mass,
-                                                                    track_direction,
-                                                                    action,
-                                                                    coordinates,
-                                                                    coordinates_in,
-                                                                    coordinates_out,
-                                                                    self.circuit_index)
+        new_state, new_position, new_mass, self.v_xy = util.propagate_dynamics(self.state,
+                                                                               self.current_position,
+                                                                               self.mass,
+                                                                               self.v_xy,
+                                                                               track_direction,
+                                                                               action,
+                                                                               coordinates,
+                                                                               coordinates_in,
+                                                                               coordinates_out,
+                                                                               self.circuit_index)
 
         # Update time
         self.time += inp.delta_t

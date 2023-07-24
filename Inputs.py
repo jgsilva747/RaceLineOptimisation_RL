@@ -7,7 +7,7 @@ chosen_circuit = "test curve"
 delta_t = 0.025 # s
 
 # Define initial velocity (in km/h)
-initial_velocity = 1 # 200 # km/h
+initial_velocity = 200 # km/h
 
 # Define maximum simulation time (in minutes)
 max_min = 3 # min

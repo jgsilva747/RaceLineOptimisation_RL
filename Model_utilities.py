@@ -253,28 +253,37 @@ def get_closest_point(coordinates, position, id):
     old_error = old_pos[1] - y( old_pos[0] )
     new_error = new_pos[1] - y( new_pos[0] )
 
+    if old_pos[0] == 0:
+        return old_pos
+
     # Define tolerance to end search
     tol = 1e-1
+    count = 0
 
-    while np.absolute( new_error ) > tol:
+    while np.absolute( new_error ) > tol * (1 + count/10):
 
         # Compute difference gradient
         gradient = ( new_error - old_error ) / ( new_pos[0] - old_pos[0] )
 
+        print(f'Old error: {old_error}  New error: {new_error}  Old x: {old_pos[0]}  New x: {new_pos[0]}')
+
         # Update positions
-        old_pos = new_pos
-        new_pos = old_pos + ( old_pos[0] / gradient ) * perpendicular_track_direction / old_pos[0] # FIXME: might have problems with slope = 0 or x = 0
+        aux = new_pos
+        new_pos = old_pos - ( old_error / gradient ) * perpendicular_track_direction / perpendicular_track_direction[0] # FIXME: might have problems with slope = 0 or x = 0
+        old_pos = aux
 
         # Update errors
         old_error = old_pos[1] - y( old_pos[0] )
         new_error = new_pos[1] - y( new_pos[0] )
 
+        count += 1
+
     
     return new_pos
 
-def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, delta_sample = 5):
+def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, delta_sample = 10):
     '''
-    Compute the 10 future (relative) curvatures of the track, computed at an interval of 5 m
+    Compute the 10 future (relative) curvatures of the track, computed at an interval of 10 m
 
     Parameters
     ----------
@@ -313,21 +322,26 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
     current_point = starting_point
     current_index = circuit_index
 
-    for sample in range( n_samples ):
+    for _ in range( n_samples ):
 
         # Compute next point
-        next_point = current_point + track_direction(current_index) * delta_sample
+        current_track_direction = track_direction(current_index)
+        next_point = current_point + current_track_direction * delta_sample
 
         # Compute distance to next portion of the track (to update circuit_index)
         old_distance_to_end = np.linalg.norm( current_point - coordinates[circuit_index + 1] )
         current_distance_to_end = np.linalg.norm( next_point - coordinates[circuit_index + 1] )
+
+        # Update current point
+        current_point = next_point
+
         # Check if both points are within delta_sample + small_margin of next index
         if current_distance_to_end < delta_sample + 1 and old_distance_to_end < delta_sample + 1:
             # Update index
             current_index += 1
 
         # Get current angle of track
-        current_direction = track_direction(current_index)
+        current_direction = current_track_direction
         current_angle = np.arctan2( current_direction[1] , current_direction[0] )
 
         # Store difference between current angle and initial angle
@@ -414,7 +428,7 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
 
 
 
-def propagate_dynamics(state, position, mass, track_direction, action, coordinates, coordinates_in, coordinates_out, index, delta_t = inp.delta_t):
+def propagate_dynamics(state, position, mass, velocity, track_direction, action, coordinates, coordinates_in, coordinates_out, index, delta_t = inp.delta_t):
     '''
     Propagates car dynamics based on current state and defined action
 
@@ -427,6 +441,8 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
         xy position coordinates [m]
     mass: float
         Current mass [kg]
+    velocity: float array [1 x 2]
+        Array containing x and y components of velocity [m/s]
     track_direction: float array [1 x 2]
         Unit array containing the xy coordinates of the track direction (e.g.: [1,0] means track is horizontal, to the right)
     action: float array [1 x 2]
@@ -454,11 +470,6 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
     # Compute norm of current velocity
     speed_norm = state[0] # m/s
 
-    # Get speed in xy coordiantes
-    speed_angle = np.arctan2( track_direction[1] , track_direction[0] ) - state[3]
-    speed_direction = np.array([ np.cos(speed_angle) , np.sin(speed_angle) ])
-    speed = speed_direction * speed_norm
-
     if speed_norm < inp.min_speed:
         speed_norm = inp.min_speed
 
@@ -477,22 +488,22 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
         acceleration = 0
 
     # Compute tangent accelearation
-    acc_x_tangent = np.cos(angle) * acceleration * speed[0] / speed_norm
-    acc_y_tangent = np.cos(angle) * acceleration * speed[1] / speed_norm
+    acc_x_tangent = np.cos(angle) * acceleration * velocity[0] / speed_norm
+    acc_y_tangent = np.cos(angle) * acceleration * velocity[1] / speed_norm
 
     # Compute normal acceleration
-    acc_x_normal = - np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * speed[1] / speed_norm
-    acc_y_normal = np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * speed[0] / speed_norm
+    acc_x_normal = - np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * velocity[1] / speed_norm
+    acc_y_normal = np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * velocity[0] / speed_norm
 
     # Add normal and tangent accelerations in cartesian coordinates
     acc_x = acc_x_tangent + acc_x_normal 
     acc_y = acc_y_tangent + acc_y_normal
 
     # Propagate speed using Euler integrator
-    v = [speed[0] + acc_x * delta_t, speed[1] + acc_y * delta_t]
+    v = [velocity[0] + acc_x * delta_t, velocity[1] + acc_y * delta_t]
 
     # Propagate position using Euler integrator
-    new_position = [position[0] + speed[0] * delta_t + 0.5 * acc_x * delta_t**2, position[1] + speed[1] * delta_t + 0.5 * acc_y * delta_t**2]
+    new_position = [position[0] + velocity[0] * delta_t + 0.5 * acc_x * delta_t**2, position[1] + velocity[1] * delta_t + 0.5 * acc_y * delta_t**2]
     new_position = np.array( new_position )
 
     ################
@@ -532,7 +543,7 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
                                                                                                # after running assess_termination()
                                                                                                # in the step function
     # Return updated state, position and mass
-    return state, new_position, mass
+    return state, new_position, mass, v
 
 
 
