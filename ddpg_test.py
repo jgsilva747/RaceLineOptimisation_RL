@@ -18,7 +18,6 @@ if __name__ ==  '__main__':
     # Define the environment in the RL library.
     env = CarEnvironment()
 
-
     score_hist=[]
     # for reproducibility
     torch.manual_seed(inp.seed)
@@ -75,6 +74,8 @@ if __name__ ==  '__main__':
 
         # Run episode
         while not done:
+
+            print("Step")
 
             # Obtain action from agent NN
             action = [0,0] # agent.select_action(state)

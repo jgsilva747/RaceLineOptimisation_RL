@@ -126,13 +126,9 @@ class CarEnvironment(gym.Env):
         self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance = 0
 
-        # Bool to define if plots are to be created
-        self.plotting = inp.plotting
-
         # Define initial state
-        self.state_0 = [self.v_0, self.a_0, self.n_0, self.delta_heading_0, self.curvature_list_0, self.lidar_samples_0, self.track_limits_0]
-        print(self.state_0)
-        self.state_0 = np.array( self.state_0 )
+        state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
+        self.state_0 = np.concatenate( [state_branch , self.curvature_list_0 , self.lidar_samples_0 , [self.track_limits_0]] )
 
     def reset(self):
         # TODO: explain function
@@ -195,7 +191,7 @@ class CarEnvironment(gym.Env):
         # Update state
         self.state = np.array( new_state )
         # Update position
-        self.current_position = new_position
+        self.current_position = np.array( new_position )
         # Update mass
         self.mass = new_mass
 
@@ -207,7 +203,8 @@ class CarEnvironment(gym.Env):
         reward, delta_distance = util.get_reward(self.left_track,
                                                  self.finish_line,
                                                  self.previous_distance_to_last_checkpoint,
-                                                 current_distance_to_last_checkpoint)
+                                                 current_distance_to_last_checkpoint,
+                                                 self.state[1:3])
 
   
         # Update previous distance to last checkpoint

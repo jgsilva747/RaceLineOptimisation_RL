@@ -263,11 +263,12 @@ def get_closest_point(coordinates, position, id):
 
         # Update positions
         old_pos = new_pos
-        new_pos = old_pos - ( new_error / gradient ) * perpendicular_track_direction / old_pos[0] # FIXME: might have problems with slope = 0 or x = 0
+        new_pos = old_pos + ( old_pos[0] / gradient ) * perpendicular_track_direction / old_pos[0] # FIXME: might have problems with slope = 0 or x = 0
 
         # Update errors
         old_error = old_pos[1] - y( old_pos[0] )
         new_error = new_pos[1] - y( new_pos[0] )
+
     
     return new_pos
 
@@ -299,7 +300,7 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
     # assume it returns xy coordinates of closes point along centre line
 
     # Initialise future curvatures array
-    future_curvatures = np.zeros((10))
+    future_curvatures = [] # np.zeros((10))
 
     # Compute unit track direction # FIXME: will have problems when agent reaches last index
     track_direction = lambda id : ( coordinates[id + 1] - coordinates[id] ) / np.linalg.norm( coordinates[id + 1] - coordinates[id] )
@@ -338,7 +339,7 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
         elif relative_angle < -np.pi:
             relative_angle += 2 * np.pi
 
-        future_curvatures[sample] = relative_angle # negative angle means left, positive angle means right
+        future_curvatures.append( relative_angle ) # [sample] = relative_angle # negative angle means left, positive angle means right
 
     return future_curvatures # TODO: test this function!
 
@@ -347,15 +348,17 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
 def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_position, index, margin = inp.left_track_margin):
     # TODO: explain and test
 
+    # Define LIDAR angle list
     angle_list = np.deg2rad( [ -90, -45, -30, -15, 0, 15, 30, 45, 90 ] )
 
     # Initialise lidar samples
-    lidar_samples = np.zeros((len(angle_list)))
+    lidar_samples = [] # np.zeros((len(angle_list)))
 
     # Compute unit track direction
     track_direction = ( coordinates[index + 1] - coordinates[index] ) / np.linalg.norm( coordinates[index + 1] - coordinates[index] )
     track_angle = np.arctan2( track_direction[1] , track_direction[0] )
 
+    # Define previous index (cannot be smaller than 0) # FIXME: do the same for maximum index eventually
     previous_index = index - 1 if index > 0 else index
 
     for angle in angle_list:
@@ -363,8 +366,10 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
         current_angle = track_angle - angle
         current_direction = np.array([ np.cos(current_angle) , np.sin(current_angle) ])
 
+        # Initialise LIDAR position/measurement beam
         position = current_position
 
+        # Get 10 m precision
         while not all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
                       left_track(position, coordinates_in, coordinates_out, index, margin),
                       left_track(position, coordinates_in, coordinates_out, index + 1, margin),
@@ -376,6 +381,7 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
         # Move 10 m back
         position = position - 10 * current_direction
 
+        # Get 2.5 m precision
         while not all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
                       left_track(position, coordinates_in, coordinates_out, index, margin),
                       left_track(position, coordinates_in, coordinates_out, index + 1, margin),
@@ -387,6 +393,7 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
         # Move 2.5 m back
         position = position - 2.5 * current_direction
 
+        # Get 1 m precision
         while not all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
                       left_track(position, coordinates_in, coordinates_out, index, margin),
                       left_track(position, coordinates_in, coordinates_out, index + 1, margin),
@@ -400,50 +407,7 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
 
         # Store measurement
         angle_id = int( np.where(angle_list == angle)[0] )
-        lidar_samples[ angle_id ] = np.linalg.norm( lidar_measurement )
-
-        '''
-        # Initialise LIDAR sample
-        position_close = current_position
-        position_far = current_position + 200 * current_direction
-
-        # FIXME: problems with last few track portions
-
-        # # Check if there is no wall within a distance of 200 m in current direction
-        # if not all( [ left_track(position_far, coordinates_in, coordinates_out, index - 1, margin),
-        #               left_track(position_far, coordinates_in, coordinates_out, index, margin),
-        #               left_track(position_far, coordinates_in, coordinates_out, index + 1, margin),
-        #               left_track(position_far, coordinates_in, coordinates_out, index + 2, margin),
-        #               left_track(position_far, coordinates_in, coordinates_out, index + 3, margin), ] ):
-        #     position_close = position_far
-        
-        # LIDAR measurement error/tolerance, in meters
-        tol = 1 # m
-
-        previous_index = index - 1 if index > 0 else index
-
-        while np.linalg.norm( position_far - position_close ) > tol:
-            
-            position = ( position_far + position_close ) / 2
-
-            # Check if any wall was found
-            if all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 1, margin)]):#,
-                      # left_track(position, coordinates_in, coordinates_out, index + 2, margin),
-                      # left_track(position, coordinates_in, coordinates_out, index + 3, margin), ] ):
-                # If wall was found, define position as position_far
-                position_far = position
-            else:
-                # If no wall was found, we can still move forward. Assign position to position_close
-                position_close = position
-
-        # When we leave the loop, the distance between position_close and position_far is less than 1 m
-        # Output average of positions
-        position = (position_close + position_far) / 2
-        # Store measurement for respective angle
-        angle_id = int( np.where(angle_list == angle)[0] )
-        lidar_samples[ angle_id ] = np.linalg.norm( position )'''
+        lidar_samples.append( np.linalg.norm( lidar_measurement ) ) # [ angle_id ] = np.linalg.norm( lidar_measurement )
     
 
     return lidar_samples
@@ -491,7 +455,7 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
     speed_norm = state[0] # m/s
 
     # Get speed in xy coordiantes
-    speed_angle = np.arctan2[ track_direction[1] , track_direction[0] ] - state[3]
+    speed_angle = np.arctan2( track_direction[1] , track_direction[0] ) - state[3]
     speed_direction = np.array([ np.cos(speed_angle) , np.sin(speed_angle) ])
     speed = speed_direction * speed_norm
 
@@ -529,6 +493,7 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
 
     # Propagate position using Euler integrator
     new_position = [position[0] + speed[0] * delta_t + 0.5 * acc_x * delta_t**2, position[1] + speed[1] * delta_t + 0.5 * acc_y * delta_t**2]
+    new_position = np.array( new_position )
 
     ################
     # Update state #
@@ -546,7 +511,7 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
     absolute_heading = np.arctan2( v[1] , v[0] )
 
     # Compute difference between current angle and track angle
-    delta_heading = np.arctan2[ track_direction[1] , track_direction[0] ] - absolute_heading
+    delta_heading = np.arctan2( track_direction[1] , track_direction[0] ) - absolute_heading
 
     # Check if relative angle is within [-pi, pi]
     if delta_heading > np.pi:
@@ -561,16 +526,17 @@ def propagate_dynamics(state, position, mass, track_direction, action, coordinat
     lidar_samples = get_lidar_samples(coordinates, coordinates_in, coordinates_out, new_position, index)
 
     # Updated state
-    state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] # NOTE: Last entry is only updated
-                                                                                       # after running assess_termination()
-                                                                                       # in the step function
-
+    # state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] 
+    state_branch = [v_norm, a, n, delta_heading]
+    state = np.concatenate( [state_branch , curvature_list , lidar_samples , [float(False)]] ) # NOTE: Last entry is only updated
+                                                                                               # after running assess_termination()
+                                                                                               # in the step function
     # Return updated state, position and mass
-    return state, np.array(new_position), mass
+    return state, new_position, mass
 
 
 
-def get_reward(left_track, finish_line, previous_distance, current_distance, a, n):
+def get_reward(left_track, finish_line, previous_distance, current_distance, acc):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -585,10 +551,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, a, 
         Distance, given in m, between car and last checkpoint at previous state
     current_distance: float
         Distance, given in m, between car and last checkpoint at current state
-    a: float
-        Longitudinal acceleration, given in m/s^2
-    n: float
-        Lateral (centripetal) acceleration, given in m/s^2
+    acc: float array [1 x 2]
+        Longitudinal and Lateral (centripetal) acceleration, given in m/s^2
 
     Returns
     -------
