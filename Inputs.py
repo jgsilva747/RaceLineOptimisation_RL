@@ -98,7 +98,7 @@ learning_rate_actor = 8e-4 # 6e-4 # 8e-4 # 3e-3
 learning_rate_critic = 4e-2 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = True
+plot_episode = False
 # show reward and action plot
 plot_stats = False
 

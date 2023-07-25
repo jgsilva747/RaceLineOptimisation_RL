@@ -338,8 +338,8 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
 
 
 
-def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_position, index, margin = inp.left_track_margin):
-    # TODO: explain and test
+def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_position, index):
+    # TODO: explain
 
     # Define LIDAR angle list
     angle_list = np.deg2rad( [ -90, -45, -30, -15, 0, 15, 30, 45, 90 ] )
@@ -351,57 +351,53 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
     track_direction = ( coordinates[index + 1] - coordinates[index] ) / np.linalg.norm( coordinates[index + 1] - coordinates[index] )
     track_angle = np.arctan2( track_direction[1] , track_direction[0] )
 
-    # Define previous index (cannot be smaller than 0) # FIXME: do the same for maximum index eventually
-    previous_index = index - 1 if index > 0 else index
-
     for angle in angle_list:
         # Compute direction
         current_angle = track_angle - angle
         current_direction = np.array([ np.cos(current_angle) , np.sin(current_angle) ])
 
         # Initialise LIDAR position/measurement beam
-        position = current_position
+        lidar_position = current_position
+        lidar_index = index
+        
+        # Get 10 m precision (faster with less precision)
+        while not left_track(lidar_position, coordinates_in, coordinates_out, lidar_index, margin=0):
+            lidar_position = lidar_position + 10 * current_direction
+            lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
 
-        # Get 10 m precision
-        while not all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 1, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 2, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 3, margin), ] ) and np.linalg.norm(position - current_position) < 200:
-            # if still inside track, move 10 m away
-            position = position + 10 * current_direction
-
+            if np.linalg.norm(lidar_position - current_position) > 210:
+                break
+        
         # Move 10 m back
-        position = position - 10 * current_direction
+        lidar_position = lidar_position - 10 * current_direction
+        lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
 
         # Get 2.5 m precision
-        while not all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 1, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 2, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 3, margin), ] ) and np.linalg.norm(position - current_position) < 200:
-            # if still inside, move 2.5 m away
-            position = position + 2.5 * current_direction
-        
-        # Move 2.5 m back
-        position = position - 2.5 * current_direction
+        while not left_track(lidar_position, coordinates_in, coordinates_out, lidar_index, margin=0):
+            lidar_position = lidar_position + 2.5 * current_direction
+            lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
 
-        # Get 1 m precision
-        while not all( [ left_track(position, coordinates_in, coordinates_out, previous_index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 1, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 2, margin),
-                      left_track(position, coordinates_in, coordinates_out, index + 3, margin), ] ) and np.linalg.norm(position - current_position) < 200:
-            # if still inside, move 1 m away
-            position = position + current_direction
+            if np.linalg.norm(lidar_position - current_position) > 202.5:
+                break
+
+        # Move 2.5 m back
+        lidar_position = lidar_position - 2.5 * current_direction
+        lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+
+        # Get 1 m precision (slower with more precision)
+        while not left_track(lidar_position, coordinates_in, coordinates_out, lidar_index, margin=0):
+            lidar_position = lidar_position + current_direction
+            lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+
+            if np.linalg.norm(lidar_position - current_position) > 201:
+                break
 
         # Update LIDAR measurement
-        lidar_measurement = position - current_position
+        lidar_measurement = lidar_position - current_position
 
         # Store measurement
-        angle_id = int( np.where(angle_list == angle)[0] )
-        lidar_samples.append( np.linalg.norm( lidar_measurement ) ) # [ angle_id ] = np.linalg.norm( lidar_measurement )
-    
+        lidar_samples.append( min( np.linalg.norm( lidar_measurement ) , 200 ) ) # [ angle_id ] = np.linalg.norm( lidar_measurement )
+
 
     return lidar_samples
 

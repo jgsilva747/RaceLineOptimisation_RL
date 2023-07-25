@@ -61,7 +61,7 @@ if __name__ ==  '__main__':
     # Train the agent for max_episodes
     # for i in range(inp.n_episodes):
     # while max_count < int( 1e2 ):
-    for i in range(1):
+    for i in range(10):
         total_reward = 0
         state, current_position = env.reset()
         done = False

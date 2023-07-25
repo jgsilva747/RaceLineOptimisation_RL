@@ -52,7 +52,7 @@ class CarEnvironment(gym.Env):
         self.curvature_list_0 = util.get_future_curvatures(coordinates, self.current_position, self.circuit_index)
         self.curvature_list = self.curvature_list_0
 
-        # Initialise LIDAR samples # TODO: test
+        # Initialise LIDAR samples
         self.lidar_samples_0 = util.get_lidar_samples(coordinates, coordinates_in, coordinates_out, self.current_position, self.circuit_index)
         self.lidar_samples = self.lidar_samples_0
 
