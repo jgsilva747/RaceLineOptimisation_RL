@@ -1,0 +1,7 @@
+train:
+  seed: 0
+eval:
+  seed: 1
+agent:
+  actor_learning_rate: 3e-3
+  critic_learning_rate: 2e-3

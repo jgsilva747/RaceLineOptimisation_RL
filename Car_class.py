@@ -49,11 +49,11 @@ class CarEnvironment(gym.Env):
         self.delta_heaing = self.delta_heading_0
 
         # Initialise list of curvatures
-        self.curvature_list_0 = util.get_future_curvatures(coordinates, self.current_position, self.circuit_index)
+        self.curvature_list_0 = util.get_future_curvatures(self.current_position, self.circuit_index)
         self.curvature_list = self.curvature_list_0
 
         # Initialise LIDAR samples
-        self.lidar_samples_0 = util.get_lidar_samples(coordinates, coordinates_in, coordinates_out, self.current_position, self.circuit_index)
+        self.lidar_samples_0 = util.get_lidar_samples(self.current_position, self.circuit_index)
         self.lidar_samples = self.lidar_samples_0
 
         # Initialise track limits bool
@@ -173,21 +173,16 @@ class CarEnvironment(gym.Env):
                                                                                self.v_xy,
                                                                                track_direction,
                                                                                action,
-                                                                               coordinates,
-                                                                               coordinates_in,
-                                                                               coordinates_out,
                                                                                self.circuit_index)
 
         # Update time
         self.time += inp.delta_t
 
         # Update track position index
-        new_circuit_index, current_distance_to_last_checkpoint = util.get_circuit_index(new_position, coordinates, self.circuit_index)
+        new_circuit_index, current_distance_to_last_checkpoint = util.get_circuit_index(new_position, self.circuit_index)
 
         # Check termination condition
         self.done, self.left_track, self.finish_line = util.assess_termination(new_position,
-                                                                               coordinates_in,
-                                                                               coordinates_out,
                                                                                new_circuit_index,
                                                                                self.time)
         

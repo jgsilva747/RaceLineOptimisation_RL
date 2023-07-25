@@ -61,7 +61,7 @@ if __name__ ==  '__main__':
     # Train the agent for max_episodes
     # for i in range(inp.n_episodes):
     # while max_count < int( 1e2 ):
-    for i in range(1000):
+    for i in range(10):
         total_reward = 0
         state, current_position = env.reset()
         done = False
@@ -75,11 +75,11 @@ if __name__ ==  '__main__':
         # Run episode
         while not done:
             # Obtain action from agent NN
-            action = agent.select_action(state)
+            action = [1,0] # agent.select_action(state)
             agent_action.append( action )
 
             # Add Gaussian noise to actions for exploration
-            action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
+            # action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
 
             # Add OU noise
             # action += noise_flag * ou_noise.sample()
@@ -123,60 +123,8 @@ if __name__ ==  '__main__':
             max_count = 0
             max_distance = new_max_distance
 
-        print("Episode: {}  Total Reward: {:0.2f}  Current Distance: {:0.1f}  Max Distance: {:0.1f}  Mean Actions: {:0.3f} , {:0.3f}".format( episode, total_reward, current_distance, max_distance, np.mean(agent_action[:,0]), np.mean(agent_action[:,1])))
-        agent.update()
-        if episode % 100 == 0:
-            agent.save()
+        print("Episode: {}".format( episode ))
         episode += 1
-    
-    # Save "trained" agent # NOTE: This agent cannot even complete Turn 1, but it learnt that the best way is forward
-    agent.save()
 
-
-    ###############################
-    # RUN TRAINED AGENT ###########
-    ###############################
-    print("\n\nFinished training. Running trained agent\n")
-
-    env = CarEnvironment()
-
-    # Environment action and states
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
-
-    # Create DDPG instance
-    agent = ddpg.DDPG(state_dim, action_dim)
-
-    agent.load()
-
-    fig, ax = plt.subplots(figsize=( 8 , 6))
-    ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
-    ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
-    # Apply tight layout to figure
-    plt.tight_layout()
-
-    state, current_position = env.reset()
-    done = False
-
-    agent_action = []
-
-    # Plot initial position
-    ax.scatter(current_position[0], current_position[1], marker='.',  color = 'b', linewidths=0.01)
-
-    # Run episode
-    while not done:
-        # Obtain action from agent NN
-        action = agent.select_action(state)
-        agent_action.append( action )
-
-        next_state, reward, done, current_position, current_distance = env.step(action)
-
-        state = next_state        
-
-        ax.scatter(current_position[0], current_position[1], marker='.', color = 'b', linewidths=0.01)
-
-    agent_action = np.array(agent_action)    
-
-    print("Max Distance: {:0.2f}  Mean Actions: {:0.3f} , {:0.3f}".format(current_distance, np.mean(agent_action[:,0]), np.mean(agent_action[:,1])))
 
     plt.show()

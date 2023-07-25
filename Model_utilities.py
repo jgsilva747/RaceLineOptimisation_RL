@@ -15,6 +15,78 @@ import os
 import Inputs as inp
 
 
+
+
+###########################################
+# Circuit Definition ######################
+###########################################
+'''
+Routine to read coordinates from file for a
+chosen circuit. Inner and outter coordinates
+of the track are created, along with the
+coordinates of the centerline.
+'''
+
+# Load chosen circuit from input file
+chosen_circuit = inp.chosen_circuit
+
+# Define folder path
+circuit_dir = os.path.dirname((__file__)) + "/circuits"
+# Create list of available circuits
+circuit_list = str(next( os.walk( circuit_dir ) )[2])
+circuit_list = circuit_list.replace('.txt', '')
+
+# Check if chosen circuit is available
+if chosen_circuit in circuit_list:
+    # Read coordinates
+    coordinates = np.loadtxt(circuit_dir + '/' + chosen_circuit + '.txt')
+else:
+    # If circuit is not available, print list of available circuits and exit program
+    print("Circuit not available. Please pick a circuit from the following list: " + circuit_list.strip(']['))
+    exit(0)
+
+# Create variables for inner and outter limits of circuit
+coordinates_in = np.zeros((len(coordinates),2))
+coordinates_out = np.zeros((len(coordinates),2))
+
+# Define origin of circuit
+start = coordinates[0]
+
+# perpendicular direction scale factor
+direction_factor = inp.direction_factor
+
+# real life circuit scale factor
+circuit_factor = inp.circuit_factor
+
+# Cycle to compute inner and outter limits of circuit
+for i in range(len(coordinates)):
+
+    # Make sure that minimum index is at least 0
+    min_val = i - 1
+    if min_val < 0:
+        min_val = 0
+
+    # Make sure that maximum index does not exceed array length
+    max_val = i + 1
+    if max_val >= len(coordinates):
+        max_val = len(coordinates) - 1
+
+    # Compute track's perpendicular direction at each point
+    direction = np.array([- coordinates[max_val,1] + coordinates[min_val,1], coordinates[max_val,0] - coordinates[min_val,0]])
+    
+    # Normalise and scale perpendicular direction
+    direction = direction_factor * direction / np.linalg.norm(direction)
+
+    # Compute inner and outter limits of circuit
+    coordinates_in[i] = (coordinates[i] - direction  - start) * circuit_factor
+    coordinates_out[i] = (coordinates[i] + direction  - start) * circuit_factor
+
+coordinates = np.array(coordinates)
+for i in range(len(coordinates)):
+    coordinates[i] = ( coordinates[i] - start ) * circuit_factor
+
+
+
 def convert_action(action):
     '''
     Function that converts the discrete input (from 0 to 9)
@@ -75,7 +147,7 @@ def get_acceleration(speed, mass, throttle):
     return throttle * acc
     
 
-def left_track(position, coordinates_in, coordinates_out, index, margin):
+def left_track(position, index, margin):
     # TODO: explain
     
     # Compute angle/direction of current portion of the track in the xy frame (in degrees)
@@ -132,7 +204,7 @@ def left_track(position, coordinates_in, coordinates_out, index, margin):
 
 
 
-def assess_termination(position, coordinates_in, coordinates_out, index, time, margin = inp.left_track_margin):
+def assess_termination(position, index, time, margin = inp.left_track_margin):
     '''
     Assess if simulation should end.
     This is done by checking if the car is within track limits, if the car
@@ -143,10 +215,6 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
     ----------
     position: float array [1 x 2]
         Position array, containing: x and y position [m], respectively
-    coordinates_in: float array [2 x number_of_track_points]
-        array of xy coordinates of the inner limits of the circuit
-    coordinates_out: float array [2 x number_of_track_points]
-        array of xy coordinates of the outter limits of the circuit
     index: int
         index of current track position w.r.t. the coordinates array 
         (used to assess if car has reached the finish line or if car has exceeded track limits)
@@ -171,13 +239,13 @@ def assess_termination(position, coordinates_in, coordinates_out, index, time, m
     
     # Assess if car left the race track
     else:
-        if left_track(position, coordinates_in, coordinates_out, index, margin):
+        if left_track(position, index, margin):
             return True, True, False
 
     # If none of the above cases was activated, then the simulation should not be terminated
     return False, False, False
 
-def get_circuit_index(position, coordinates, circuit_index):
+def get_circuit_index(position,circuit_index):
     '''
     Obtain index of current track coordinate w.r.t. the coordinate array
 
@@ -185,8 +253,6 @@ def get_circuit_index(position, coordinates, circuit_index):
     ----------
     position: float array [1 x 2]
         Position array, containing: x and y position [m], respectively
-    coordinates: float array [2 x number_of_track_points]
-        array of xy coordinates of the curcuit's centre line
     curcuit_index: int
         index of the last propagated position withing the coordinate array
     
@@ -217,7 +283,7 @@ def get_circuit_index(position, coordinates, circuit_index):
     return circuit_index, current_distance_to_last_checkpoint
 
 
-def get_closest_point(coordinates, position, id):
+def get_closest_point(position, id):
     # TODO: explain
 
     # Compute slope of track equation in xy coordinates
@@ -265,14 +331,12 @@ def get_closest_point(coordinates, position, id):
     return new_pos
 
 
-def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, delta_sample = 10):
+def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample = 10):
     '''
     Compute the 10 future (relative) curvatures of the track, computed at an interval of 10 m
 
     Parameters
     ----------
-    coordinates: float array [2 x number_of_track_points]
-        array of xy coordinates of the curcuit's centre line
     position: float array [1 x 2]
         Position array, containing: x and y position [m], respectively
     circuit_index: int
@@ -289,7 +353,7 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
     '''
 
     # Find closest (interpolated) point in centre line
-    starting_point = get_closest_point(coordinates, position, circuit_index)
+    starting_point = get_closest_point(position, circuit_index)
     # assume it returns xy coordinates of closes point along centre line
 
     # Initialise future curvatures array
@@ -316,7 +380,7 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
         current_point = next_point
 
         # Get index of current point
-        current_index , _ = get_circuit_index(current_point, coordinates, current_index)
+        current_index , _ = get_circuit_index(current_point, current_index)
 
 
         # Get current angle of track
@@ -338,7 +402,7 @@ def get_future_curvatures(coordinates, position, circuit_index, n_samples = 10, 
 
 
 
-def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_position, index):
+def get_lidar_samples(current_position, index):
     # TODO: explain
 
     # Define LIDAR angle list
@@ -361,33 +425,33 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
         lidar_index = index
         
         # Get 10 m precision (faster with less precision)
-        while not left_track(lidar_position, coordinates_in, coordinates_out, lidar_index, margin=0):
+        while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + 10 * current_direction
-            lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+            lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
 
             if np.linalg.norm(lidar_position - current_position) > 210:
                 break
         
         # Move 10 m back
         lidar_position = lidar_position - 10 * current_direction
-        lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+        lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
 
         # Get 2.5 m precision
-        while not left_track(lidar_position, coordinates_in, coordinates_out, lidar_index, margin=0):
+        while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + 2.5 * current_direction
-            lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+            lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
 
             if np.linalg.norm(lidar_position - current_position) > 202.5:
                 break
 
         # Move 2.5 m back
         lidar_position = lidar_position - 2.5 * current_direction
-        lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+        lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
 
         # Get 1 m precision (slower with more precision)
-        while not left_track(lidar_position, coordinates_in, coordinates_out, lidar_index, margin=0):
+        while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + current_direction
-            lidar_index , _ = get_circuit_index(lidar_position, coordinates, lidar_index)
+            lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
 
             if np.linalg.norm(lidar_position - current_position) > 201:
                 break
@@ -403,7 +467,7 @@ def get_lidar_samples(coordinates, coordinates_in, coordinates_out, current_posi
 
 
 
-def propagate_dynamics(state, position, mass, velocity, track_direction, action, coordinates, coordinates_in, coordinates_out, index, delta_t = inp.delta_t):
+def propagate_dynamics(state, position, mass, velocity, track_direction, action, index, delta_t = inp.delta_t):
     '''
     Propagates car dynamics based on current state and defined action
 
@@ -422,12 +486,6 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
         Unit array containing the xy coordinates of the track direction (e.g.: [1,0] means track is horizontal, to the right)
     action: float array [1 x 2]
         Action array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
-    coordinates: float array [2 x number_of_track_points]
-        array of xy coordinates of the curcuit's centre line
-    coordinates_in: float array [2 x number_of_track_points]
-        array of xy coordinates of the curcuit's inner limit
-    coordinates_out: float array [2 x number_of_track_points]
-        array of xy coordinates of the curcuit's outter limit
     index: int
         index of current position w.r.t. the coordinate array
     delta_t: float
@@ -506,10 +564,10 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
         delta_heading += 2 * np.pi
     
     # Get future curvatures list
-    curvature_list = get_future_curvatures(coordinates, new_position, index)
+    curvature_list = get_future_curvatures(new_position, index)
 
     # Get LIDAR samples
-    lidar_samples = get_lidar_samples(coordinates, coordinates_in, coordinates_out, new_position, index)
+    lidar_samples = get_lidar_samples(new_position, index)
 
     # Updated state
     # state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] 
@@ -609,72 +667,3 @@ def chance_of_noise(reward_history, current_distance, max_distance, max_count):
         chance_of_noise = min( 1 , chance_of_noise + ( max_count - count_tol ) / count_tol )
 
     return chance_of_noise
-
-
-###########################################
-# Circuit Definition ######################
-###########################################
-'''
-Routine to read coordinates from file for a
-chosen circuit. Inner and outter coordinates
-of the track are created, along with the
-coordinates of the centerline.
-'''
-
-# Load chosen circuit from input file
-chosen_circuit = inp.chosen_circuit
-
-# Define folder path
-circuit_dir = os.path.dirname((__file__)) + "/circuits"
-# Create list of available circuits
-circuit_list = str(next( os.walk( circuit_dir ) )[2])
-circuit_list = circuit_list.replace('.txt', '')
-
-# Check if chosen circuit is available
-if chosen_circuit in circuit_list:
-    # Read coordinates
-    coordinates = np.loadtxt(circuit_dir + '/' + chosen_circuit + '.txt')
-else:
-    # If circuit is not available, print list of available circuits and exit program
-    print("Circuit not available. Please pick a circuit from the following list: " + circuit_list.strip(']['))
-    exit(0)
-
-# Create variables for inner and outter limits of circuit
-coordinates_in = np.zeros((len(coordinates),2))
-coordinates_out = np.zeros((len(coordinates),2))
-
-# Define origin of circuit
-start = coordinates[0]
-
-# perpendicular direction scale factor
-direction_factor = inp.direction_factor
-
-# real life circuit scale factor
-circuit_factor = inp.circuit_factor
-
-# Cycle to compute inner and outter limits of circuit
-for i in range(len(coordinates)):
-
-    # Make sure that minimum index is at least 0
-    min_val = i - 1
-    if min_val < 0:
-        min_val = 0
-
-    # Make sure that maximum index does not exceed array length
-    max_val = i + 1
-    if max_val >= len(coordinates):
-        max_val = len(coordinates) - 1
-
-    # Compute track's perpendicular direction at each point
-    direction = np.array([- coordinates[max_val,1] + coordinates[min_val,1], coordinates[max_val,0] - coordinates[min_val,0]])
-    
-    # Normalise and scale perpendicular direction
-    direction = direction_factor * direction / np.linalg.norm(direction)
-
-    # Compute inner and outter limits of circuit
-    coordinates_in[i] = (coordinates[i] - direction  - start) * circuit_factor
-    coordinates_out[i] = (coordinates[i] + direction  - start) * circuit_factor
-
-coordinates = np.array(coordinates)
-for i in range(len(coordinates)):
-    coordinates[i] = ( coordinates[i] - start ) * circuit_factor
