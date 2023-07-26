@@ -86,6 +86,7 @@ for i in range(len(coordinates)):
     coordinates[i] = ( coordinates[i] - start ) * circuit_factor
 
 
+MAX_INDEX = len(coordinates) - 1
 
 def convert_action(action):
     '''
@@ -148,8 +149,29 @@ def get_acceleration(speed, mass, throttle):
     
 
 def left_track(position, index, margin):
-    # TODO: explain
+    '''
+    Assess if agent has left the track
+
+    Parameters
+    ----------
+    position: float array [1 x 2]
+        Position array, containing: x and y position [m], respectively
+    index: int
+        index of current position w.r.t. the coordinate array
+    margin: float
+        Distance [m] which the car is allowed to exceed wrt track limits
+        before it is considered that the car has left the track
     
+    Returns
+    ----------
+    left_track: bool
+        Bool indicating if the car has left the track. True means the car has left the track
+    '''
+
+    # Max index exceeded - will compute angle of previous (which is the final) track portion
+    if index >= MAX_INDEX:
+        index = MAX_INDEX - 1
+
     # Compute angle/direction of current portion of the track in the xy frame (in degrees)
     angle = np.rad2deg(math.atan2(coordinates_out[index+1,1] - coordinates_out[index,1], coordinates_out[index+1,0] - coordinates_out[index,0]))  
 
@@ -202,6 +224,9 @@ def left_track(position, index, margin):
             if x < x_out - margin or x > x_in + margin:
                 return True # exceeded track limits
 
+    # If track limits were not exceeded    
+    return False
+
 
 
 def assess_termination(position, index, time, margin = inp.left_track_margin):
@@ -230,7 +255,7 @@ def assess_termination(position, index, time, margin = inp.left_track_margin):
     '''
 
     # Assess if car has reached finish line
-    if index == len(coordinates_out) - 1: # successfully reached finish line
+    if index == MAX_INDEX: # successfully reached finish line
         return True, False, True # end simulation
     
     # Assess if simulation time was exceeded
@@ -262,6 +287,9 @@ def get_circuit_index(position,circuit_index):
         index of current position w.r.t. the coordinate array
     '''
 
+    if circuit_index >= MAX_INDEX:
+        circuit_index = MAX_INDEX - 1
+
     # Get position of last checkpoint
     last_checkpoint = coordinates[ circuit_index ]
 
@@ -284,7 +312,25 @@ def get_circuit_index(position,circuit_index):
 
 
 def get_closest_point(position, id):
-    # TODO: explain
+    '''
+    Get the closest point in the centre line of the track
+
+    Parameters
+    ----------
+    position: float array [1 x 2]
+        Position array, containing: x and y position [m], respectively
+    circuit_index: int
+        index of current position w.r.t. the coordinate array
+    
+    Returns
+    ---------
+    new_pos: float array [1 x 2]
+        X and y coordinates [m], respectively, of the center line point that is
+        closest to the agent's scurrent position
+    '''
+
+    if id >= MAX_INDEX:
+        id = MAX_INDEX - 1
 
     # Compute slope of track equation in xy coordinates
     track_slope = ( coordinates[id + 1, 1] - coordinates[id , 1] ) / ( coordinates[id + 1, 0] - coordinates[id , 0] )
@@ -357,7 +403,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
     # assume it returns xy coordinates of closes point along centre line
 
     # Initialise future curvatures array
-    future_curvatures = [] # np.zeros((10))
+    future_curvatures = []
 
     # Compute unit track direction # FIXME: might have problems when agent reaches last index
     track_direction = lambda id : ( coordinates[id + 1] - coordinates[id] ) / np.linalg.norm( coordinates[id + 1] - coordinates[id] )
@@ -370,7 +416,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
     current_point = starting_point
     current_index = circuit_index
 
-    for foo in range( n_samples ):
+    for _ in range( n_samples ):
 
         # Compute next point
         current_track_direction = track_direction(current_index)
@@ -381,6 +427,8 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
 
         # Get index of current point
         current_index , _ = get_circuit_index(current_point, current_index)
+        if current_index >= MAX_INDEX:
+            current_index = MAX_INDEX - 1
 
 
         # Get current angle of track
@@ -403,13 +451,28 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
 
 
 def get_lidar_samples(current_position, index):
-    # TODO: explain
+    '''
+    Compute distance to wall in 9 directions: 0, +- 15deg, +- 30deg, +- 45deg and +- 90 deg
+
+    Parameters
+    ----------
+    position: float array [1 x 2]
+        Position array, containing: x and y position [m], respectively
+    circuit_index: int
+        index of current position w.r.t. the coordinate array
+    
+    Returns
+    ----------
+    lidar_samples: float array [1 x 9]
+        array containing the 9 measurements (distance to nearest wall, [m]) in the following
+        order: -90, -45, -30, -15, 0, 15, 30, 45, 90 [deg], where - is left and + is right
+    '''
 
     # Define LIDAR angle list
     angle_list = np.deg2rad( [ -90, -45, -30, -15, 0, 15, 30, 45, 90 ] )
 
     # Initialise lidar samples
-    lidar_samples = [] # np.zeros((len(angle_list)))
+    lidar_samples = []
 
     # Compute unit track direction
     track_direction = ( coordinates[index + 1] - coordinates[index] ) / np.linalg.norm( coordinates[index + 1] - coordinates[index] )
@@ -460,7 +523,7 @@ def get_lidar_samples(current_position, index):
         lidar_measurement = lidar_position - current_position
 
         # Store measurement
-        lidar_samples.append( min( np.linalg.norm( lidar_measurement ) , 200 ) ) # [ angle_id ] = np.linalg.norm( lidar_measurement )
+        lidar_samples.append( min( np.linalg.norm( lidar_measurement ) , 200 ) )
 
 
     return lidar_samples
@@ -646,7 +709,25 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, acc
 
 def chance_of_noise(reward_history, current_distance, max_distance, max_count):
     '''
-    TODO: Explain function
+    Function that computes the chance of having exploration noise, as a function
+    of the maximum distance achieved, and depending on whether the agent is stuck
+
+    Parameters
+    ----------
+    reward_history: float array [1 x number of episodes]
+        Array containing the total reward obtained at the end of each episode
+    current_distance: float
+        Current distance [m] achieved by the agent at each instant in the current episode
+    max_distance: float
+        Maximum distance [m] ever achieved by the agent in all previous episodes
+    max_count: int
+        Counter of episodes where the maximum distance was not increased. Used as a measure
+        of how stuck the agent is
+    
+    Returns
+    ----------
+    chance_of_noise: float
+        Chance of noise, from 0 to 1, where 1 indicates 100% chance of having noise
     '''
 
     if reward_history == []:

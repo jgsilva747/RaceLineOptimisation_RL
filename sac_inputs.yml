@@ -5,3 +5,8 @@ eval:
 agent:
   actor_learning_rate: 3e-3
   critic_learning_rate: 2e-3
+device: None
+
+
+# d3rlpy==1.1.1
+# torch==1.13.0

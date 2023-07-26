@@ -61,7 +61,7 @@ if __name__ ==  '__main__':
     # Train the agent for max_episodes
     # for i in range(inp.n_episodes):
     # while max_count < int( 1e2 ):
-    for i in range(1000):
+    for i in range(5000):
         total_reward = 0
         state, current_position = env.reset()
         done = False
@@ -80,16 +80,15 @@ if __name__ ==  '__main__':
 
             # Add Gaussian noise to actions for exploration
             action = (action + noise_flag * np.random.normal(0, exploration_factor, size=action_dim)).clip(-max_action, max_action)
-
             # Add OU noise
             # action += noise_flag * ou_noise.sample()
-            next_state, reward, done, current_position, current_distance = env.step(action)
+            next_state, reward, done, _, current_position = env.step(action)
             total_reward += reward
             # if render and i >= render_interval : env.render()
             agent.replay_buffer.push((state, next_state, action, reward, float(done)))
             state = next_state
 
-            chance_of_noise = util.chance_of_noise(score_hist, current_distance, max_distance, max_count)
+            chance_of_noise = 1 # util.chance_of_noise(score_hist, current_distance, max_distance, max_count)
             noise_flag = float( random.uniform(0,1) < chance_of_noise )
 
             # print(f"Future curvatures: {np.rad2deg(state[4:14])}")
@@ -110,20 +109,21 @@ if __name__ ==  '__main__':
                 ax_reward.plot(score_hist, c = 'tab:blue')
                 # ax_action.scatter(i, np.mean(agent_action[:,0]), color='tab:blue')
                 # ax_action.scatter(i, np.mean(agent_action[:,1]), color='tab:orange')
-        
-        
+    
+   
         # if any([ inp.plot_episode , inp.plot_stats ]):
         #     plt.pause(1/60)
-        
+        '''
         # Update max distance
         new_max_distance = max(max_distance, current_distance)
         if new_max_distance == max_distance:
             max_count += 1
         else:
             max_count = 0
-            max_distance = new_max_distance
+            max_distance = new_max_distance'''
 
-        print("Episode: {}  Total Reward: {:0.2f}  Current Distance: {:0.1f}  Max Distance: {:0.1f}  Mean Actions: {:0.3f} , {:0.3f}".format( episode, total_reward, current_distance, max_distance, np.mean(agent_action[:,0]), np.mean(agent_action[:,1])))
+        # print("Episode: {}  Total Reward: {:0.2f} Mean Actions: {:0.3f} , {:0.3f}".format( episode, total_reward, np.mean(agent_action[:,0]), np.mean(agent_action[:,1])))
+        print("Episode: {}  Mean and Std of Wheel: {:0.3f} , {:0.3f}".format( episode, np.mean(agent_action[:,1]), np.std(agent_action[:,1])))
         agent.update()
         if episode % 100 == 0:
             agent.save()

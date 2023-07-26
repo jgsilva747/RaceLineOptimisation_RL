@@ -58,8 +58,6 @@ delta_distance_normalisation_factor = 1 / 10
 # Braking distance
 braking_distance = 150 # m
 
-# Plotting (true or false)
-plotting = False
 
 #########################
 # DDPG Inputs ###########
@@ -71,7 +69,7 @@ capacity= int( 1e6 )
 batch_size = 64 # 64
 update_iteration = 100 # 200
 # tau for soft updating
-tau = 0.0005 # 0.001   
+tau = 0.001 # 0.001   
 
 gamma=0.99 # 0.99
 directory = './'
@@ -94,8 +92,8 @@ noise_reduction_factor = 0.1
 
 # 2, 4e-2
 # Learning rate
-learning_rate_actor = 8e-4 # 6e-4 # 8e-4 # 3e-3
-learning_rate_critic = 4e-2 # 4e-2 # 2e-2
+learning_rate_actor = 0.00003 # 6e-4 # 8e-4 # 3e-3
+learning_rate_critic = 0.00003 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
 plot_episode = False
@@ -106,3 +104,10 @@ plot_stats = False
 theta = 0.15 # 0.15 from paper
 sigma = 0.2 # 0.2 from paper, 0.25 from code example
 # NOTE: miu = 0 from paper
+
+
+
+#########
+log = True
+# Plotting (true or false)
+plotting = False

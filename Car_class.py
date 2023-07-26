@@ -7,12 +7,26 @@
 
 
 import gymnasium as gym
-from gymnasium import spaces
+from gym import spaces # from gymnasium import spaces --> using gym because of compatibility reasons w/ d3rlpy
 import numpy as np
+import logging
+import os
 
 import Inputs as inp
 import Model_utilities as util
-from Model_utilities import coordinates, coordinates_in, coordinates_out
+from Model_utilities import coordinates
+
+if inp.log:
+
+    # Specify the log file name
+    log_file = 'environment_log.log'
+
+    # Delete the log file if it already exists
+    if os.path.exists(log_file):
+        os.remove(log_file)
+
+    # Configure the logging settings (you can modify the filename, log level, etc.)
+    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
 
 
 # Create a custom environment that adheres to the OpenAI Gym interface.
@@ -136,6 +150,11 @@ class CarEnvironment(gym.Env):
     def reset(self):
         # TODO: explain function
 
+        if inp.log:
+            # Log info from last run
+            logging.info(f"Travelled Distance: {self.travelled_distance}, Position: {self.current_position}")
+
+
         # Reset seed
         super().reset(seed=inp.seed)
 
@@ -213,4 +232,4 @@ class CarEnvironment(gym.Env):
 
         self.travelled_distance += delta_distance
 
-        return self.state, reward, self.done, self.current_position, self.travelled_distance 
+        return self.state, reward, self.done, False, self.current_position # , self.travelled_distance  
