@@ -50,7 +50,7 @@ circuit_factor = 1e5
 x1 = 5 * 900
 x2 = 7.3e-2  * 900
 x3 = 55 # km/h
-x4 = 0.27  * 900
+x4 = 0.35  * 900 # 0.27
 
 # Normalisation factor for reward function (travelled distance in right direction)
 delta_distance_normalisation_factor = 1 / 10
@@ -96,7 +96,7 @@ learning_rate_actor = 0.00003 # 6e-4 # 8e-4 # 3e-3
 learning_rate_critic = 0.00003 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = False
+plot_episode = True
 # show reward and action plot
 plot_stats = False
 

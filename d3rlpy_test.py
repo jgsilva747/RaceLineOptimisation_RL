@@ -3,6 +3,9 @@ import yaml
 import argparse
 import d3rlpy
 from d3rlpy.dataset import ReplayBuffer
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams.update({'font.size':12})
 
 import Inputs as inp
 from Model_utilities import coordinates_in, coordinates_out
@@ -72,34 +75,59 @@ def test_trained() -> None:
 
     env = CarEnvironment()
 
-    # Assess trained agent
-    for epoch in range(5):
-        # Initialize episode
-        state, _ = env.reset()
-        done = False
-        total_reward = 0
+    if inp.plot_episode:
+        fig, ax = plt.subplots(figsize=( 8 , 6))
+        ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
+        ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
+        # Apply tight layout to figure
+        plt.tight_layout()
 
-        while not done:
-            # Select action based on current state
-            state_with_batch = np.expand_dims(state, axis=0)
-            action = sac.predict(state_with_batch)[0]
+        plot_pos = []
+        plot_v = []
 
-            # Execute action in the environment
-            next_state, reward, done, truncated, _ = env.step(action)
 
-            # Accumulate the reward
-            total_reward += reward
+    # Initialize episode
+    state, current_position = env.reset()
+    done = False
+    total_reward = 0# Plot initial position
 
-            # Move to the next state
-            state = next_state
+    if inp.plot_episode:
+        plot_pos.append(current_position)
+        plot_v.append(3.6 * np.linalg.norm(state[:2]))
+        # ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma")
 
-        # Print the total reward achieved in this epoch
-        print(f"Epoch {epoch + 1}, Total Reward: {total_reward}")
+    while not done:
+        # Select action based on current state
+        state_with_batch = np.expand_dims(state, axis=0)
+        action = sac.predict(state_with_batch)[0]
+
+        # Execute action in the environment
+        next_state, reward, done, _, current_position = env.step(action)
+
+        # Accumulate the reward
+        total_reward += reward
+
+        # Move to the next state
+        state = next_state
+
+        if inp.plot_episode:
+            plot_pos.append(current_position)
+            plot_v.append(3.6 * np.linalg.norm(state[:2]))
+            # scatter.append(ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma"))
+
+    # Show plot
+    if inp.plot_episode:
+        plot_pos = np.array(plot_pos)
+        plot_v = np.array(plot_v)
+        points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c= plot_v, s=10, cmap="plasma")
+        cbar = fig.colorbar(points)
+        cbar.set_label('Velocity [km/h]')
+        plt.show()
 
 
 if __name__ == "__main__":
 
-    train()
+    # train()
 
     test_trained()
 

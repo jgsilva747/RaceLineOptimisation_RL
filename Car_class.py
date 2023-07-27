@@ -198,7 +198,7 @@ class CarEnvironment(gym.Env):
         self.time += inp.delta_t
 
         # Update track position index
-        new_circuit_index, current_distance_to_last_checkpoint = util.get_circuit_index(new_position, self.circuit_index)
+        new_circuit_index, current_distance_to_last_checkpoint, _ = util.get_circuit_index(new_position, self.circuit_index)
 
         # Check termination condition
         self.done, self.left_track, self.finish_line = util.assess_termination(new_position,

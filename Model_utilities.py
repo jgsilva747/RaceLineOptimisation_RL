@@ -287,7 +287,10 @@ def get_circuit_index(position,circuit_index):
         index of current position w.r.t. the coordinate array
     '''
 
+    flag = False
+
     if circuit_index >= MAX_INDEX:
+        flag = True
         circuit_index = MAX_INDEX - 1
 
     # Get position of last checkpoint
@@ -308,7 +311,7 @@ def get_circuit_index(position,circuit_index):
 
 
     # Return index (which may or may not have been updated) and current distance to last checkpoint
-    return circuit_index, current_distance_to_last_checkpoint
+    return circuit_index, current_distance_to_last_checkpoint, flag
 
 
 def get_closest_point(position, id):
@@ -426,7 +429,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
         current_point = next_point
 
         # Get index of current point
-        current_index , _ = get_circuit_index(current_point, current_index)
+        current_index , _, _ = get_circuit_index(current_point, current_index)
         if current_index >= MAX_INDEX:
             current_index = MAX_INDEX - 1
 
@@ -479,6 +482,10 @@ def get_lidar_samples(current_position, index):
     track_angle = np.arctan2( track_direction[1] , track_direction[0] )
 
     for angle in angle_list:
+
+        # Flag for final index
+        final_index_flag = False
+
         # Compute direction
         current_angle = track_angle - angle
         current_direction = np.array([ np.cos(current_angle) , np.sin(current_angle) ])
@@ -490,40 +497,45 @@ def get_lidar_samples(current_position, index):
         # Get 10 m precision (faster with less precision)
         while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + 10 * current_direction
-            lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
+            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
-            if np.linalg.norm(lidar_position - current_position) > 210:
+            if np.linalg.norm(lidar_position - current_position) > 210 or final_index_flag:
                 break
         
         # Move 10 m back
-        lidar_position = lidar_position - 10 * current_direction
-        lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
+        if not final_index_flag:
+            lidar_position = lidar_position - 10 * current_direction
+            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
         # Get 2.5 m precision
         while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + 2.5 * current_direction
-            lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
+            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
-            if np.linalg.norm(lidar_position - current_position) > 202.5:
+            if np.linalg.norm(lidar_position - current_position) > 202.5 or final_index_flag:
                 break
 
         # Move 2.5 m back
-        lidar_position = lidar_position - 2.5 * current_direction
-        lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
+        if not final_index_flag:
+            lidar_position = lidar_position - 2.5 * current_direction
+            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
         # Get 1 m precision (slower with more precision)
         while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + current_direction
-            lidar_index , _ = get_circuit_index(lidar_position, lidar_index)
+            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
-            if np.linalg.norm(lidar_position - current_position) > 201:
+            if np.linalg.norm(lidar_position - current_position) > 201 or final_index_flag:
                 break
 
         # Update LIDAR measurement
         lidar_measurement = lidar_position - current_position
+        distance = np.linalg.norm( lidar_measurement )
+        if final_index_flag:
+            distance = 200
 
         # Store measurement
-        lidar_samples.append( min( np.linalg.norm( lidar_measurement ) , 200 ) )
+        lidar_samples.append( min( distance , 200 ) )
 
 
     return lidar_samples
