@@ -11,8 +11,8 @@ from gymnasium import spaces
 import numpy as np
 
 import Inputs as inp
-import Model_utilities as util
-from Model_utilities import coordinates, coordinates_in, coordinates_out
+import Model_utilities_outdated as util
+from Model_utilities_outdated import coordinates, coordinates_in, coordinates_out
 
 
 # Create a custom environment that adheres to the OpenAI Gym interface.

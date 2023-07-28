@@ -79,8 +79,6 @@ def test_trained() -> None:
         fig, ax = plt.subplots(figsize=( 8 , 6))
         ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
         ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
-        # Apply tight layout to figure
-        plt.tight_layout()
 
         plot_pos = []
         plot_v = []
@@ -122,6 +120,9 @@ def test_trained() -> None:
         points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c= plot_v, s=10, cmap="plasma")
         cbar = fig.colorbar(points)
         cbar.set_label('Velocity [km/h]')
+        # Apply tight layout to figure
+        fig.tight_layout()
+        fig.subplots_adjust(right=1)
         plt.show()
 
 

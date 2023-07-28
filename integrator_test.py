@@ -81,7 +81,7 @@ def test_integrator(delta_t, integration_method, n_runs) -> None:
 
 if __name__ == "__main__":
 
-    n_runs = 1
+    n_runs = 10
 
     fig, ax = plt.subplots(figsize=( 8 , 6))
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # delta_t_list = [0.001, 0.0025, 0.005, 0.01, 0.025]
     delta_t_list = [1e-4, 2e-4, 3e-4, 4e-4, 5e-4, 6e-4, 7e-4, 8e-4, 9e-4,
                     1e-3, 2e-3, 3e-3, 4e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
-                    1e-2, 2e-2, 3e-2]
+                    1e-2, 2e-2, 2.5e-2]
 
     # Define marker list
     marker_list = ['o',
@@ -124,7 +124,7 @@ if __name__ == "__main__":
             cpu_times[integrator_index, delta_t_index], v_max[integrator_index, delta_t_index] = test_integrator(delta_t, integration_method, n_runs)
 
     
-    norm = mpl.colors.Normalize(vmin = cpu_times.min(), vmax = cpu_times.max())
+    norm = mpl.colors.Normalize(vmin = cpu_times.min(), vmax = cpu_times[:,1:].max())
     cmap = mpl.cm.ScalarMappable(norm=norm, cmap=mpl.cm.plasma)
     cmap.set_array([])
 
@@ -136,15 +136,17 @@ if __name__ == "__main__":
 
     rel_error = abs_error * 100 / min_v
 
-    ax.scatter(delta_t_list[0], rel_error[0,0], linewidths=3, marker=marker_list[0], c=legend_colour, label = label_list[0])
-    ax.scatter(delta_t_list[0], rel_error[1,0], linewidths=3, marker=marker_list[1], c=legend_colour, label = label_list[1])
+    ax.scatter(delta_t_list[1], rel_error[0,1], linewidths=3, marker=marker_list[0], c=legend_colour, label = label_list[0])
+    ax.scatter(delta_t_list[1], rel_error[1,1], linewidths=3, marker=marker_list[1], c=legend_colour, label = label_list[1])
 
     for integrator in range(len(integrator_list)):
         # ax.scatter(delta_t_list, v_max[integrator], linewidths=4, marker=marker_list[integrator], c=cmap.to_rgba(cpu_times[integrator]), label = label_list[integrator])
-        ax.scatter(delta_t_list, rel_error[integrator], linewidths=4, marker=marker_list[integrator], c=cmap.to_rgba(cpu_times[integrator]))
+        ax.scatter(delta_t_list[1:], rel_error[integrator,1:], linewidths=4, marker=marker_list[integrator], c=cmap.to_rgba(cpu_times[integrator,1:]))
 
     ax.set_xscale('log')
-    ax.set_yscale('log')
+    # ax.set_yscale('log')
+
+    ax.axhline(y = 10, color = 'r', linestyle = '--', label = 'Error Tolerance')
 
     ax.legend(loc=0)
 

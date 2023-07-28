@@ -248,5 +248,9 @@ for episode in range(n_episodes):
 
 # plt.pause(0.01)
 
+# Save policy
+np.save("sarsa_trained_policy.npy", policy)
+
+
 # Show all figures
 plt.show()

@@ -4,7 +4,7 @@ import torch
 chosen_circuit = "test curve"
 
 # Choose simulation time step
-delta_t = 0.01 # s
+delta_t = 0.015 # s
 
 # Integration method
 integration_method = 'euler'
@@ -98,7 +98,7 @@ learning_rate_actor = 0.00003 # 6e-4 # 8e-4 # 3e-3
 learning_rate_critic = 0.00003 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = True
+plot_episode = False
 # show reward and action plot
 plot_stats = False
 
