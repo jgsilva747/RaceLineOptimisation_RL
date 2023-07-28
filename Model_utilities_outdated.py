@@ -22,9 +22,9 @@ def convert_action(action):
 
     Parameters
     ----------
-    action: int
+    action: float array [1 x 2]
         discrete action obtained from discrete SARSA policy.
-        For the discrete model, 10 actions are possible
+        For the discrete model, 2 x 5 actions are possible
     
     Returns
     ----------
@@ -34,9 +34,9 @@ def convert_action(action):
     '''
 
     # Convert action to throttle, if action is within the range of 0 to 4
-    throttle = float( action < 5 ) * float( action - 2 ) / 2.0
-    # Convert action to wheel, if action is within the range of 5 to 9
-    wheel = float( action >= 5 ) * float( action - 7 ) / 2.0
+    throttle = float( action[0] < 5 ) * float( action[0] - 2 ) / 2.0
+    # Convert action to wheel, if action is within the range of 0 to 4
+    wheel = float( action[1] < 5 ) * float( action[1] - 2 ) / 2.0
 
     return [throttle, wheel]
 
