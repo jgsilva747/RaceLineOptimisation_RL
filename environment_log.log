@@ -1,2 +1,11 @@
+<<<<<<< HEAD
 2023-07-28 23:47:53,082 - Travelled Distance: 0, Position: [0 0]
 2023-07-28 23:47:53,824 - Travelled Distance: 0, Position: [0 0]
+=======
+<<<<<<< HEAD
+2023-07-28 16:38:04,872 - Travelled Distance: 0, Position: [0 0]
+=======
+2023-07-28 23:47:53,082 - Travelled Distance: 0, Position: [0 0]
+2023-07-28 23:47:53,824 - Travelled Distance: 0, Position: [0 0]
+>>>>>>> 7525cbc (Sarsa test)
+>>>>>>> refs/remotes/origin/main

@@ -424,12 +424,12 @@ def handler(signum, frame):
  
 signal.signal(signal.SIGINT, handler)
 
-
 if __name__ == '__main__':
 
-
-    # Random
-
+    '''
+    ##########
+    # Random #
+    ##########
     # Number of episodes
     n_episodes = int(1e4)
     # Factor to update Q(s,a)
@@ -439,10 +439,12 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    # Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)
+    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)'''
 
-    # Variable
-
+    '''
+    ############
+    # Variable #
+    ############
     # Number of episodes
     n_episodes = int(1e4)
     # Factor to update Q(s,a)
@@ -452,10 +454,11 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    # Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, True)
+    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, True)'''
 
-    # epsilon-greedy
-
+    ##################
+    # epsilon-greedy #
+    ##################
     # Number of episodes
     n_episodes = int(1e4)
     # Factor to update Q(s,a)
@@ -475,3 +478,4 @@ if __name__ == '__main__':
 
     # Show all figures
     plt.show()
+
