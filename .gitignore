@@ -2,3 +2,5 @@
 *.dat
 *.pth
 *.npy
+*.txt
+*.d3
