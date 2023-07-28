@@ -13,7 +13,7 @@ import os
 
 # File imports
 import Inputs as inp
-
+ 
 
 
 
@@ -87,6 +87,7 @@ for i in range(len(coordinates)):
 
 
 MAX_INDEX = len(coordinates) - 1
+
 
 def convert_action(action):
     '''
@@ -542,7 +543,87 @@ def get_lidar_samples(current_position, index):
 
 
 
-def propagate_dynamics(state, position, mass, velocity, track_direction, action, index, delta_t = inp.delta_t):
+def rotate_reference(vec_to_rotate, ref_vec_old, ref_vec_new):
+    '''
+    TODO: explain funciton
+    '''
+
+    # Compute angle (in xy grid) of reference vectors
+    angle_old = np.arctan2(ref_vec_old[1], ref_vec_old[0])
+    angle_new = np.arctan2(ref_vec_new[1], ref_vec_new[0])
+
+    # Compute rotation angle
+    delta_angle = angle_old - angle_new # positive = rotated to the right
+
+    # Apply rotation to vector
+    new_vec = [vec_to_rotate[0] * np.cos(delta_angle) - vec_to_rotate[1] * np.sin(delta_angle),
+               vec_to_rotate[0] * np.sin(delta_angle) + vec_to_rotate[1] * np.cos(delta_angle)]
+
+    return new_vec
+
+
+def integrate(state, derivative, delta_t, method = 'euler'):
+    '''
+    TODO: explain function
+    '''
+
+    # Simple Euler
+    if method == 'euler':
+        # Create integrated state variable
+        integrated_state = []
+
+        # Run loop for each state dimension
+        for dim in range( len(state) ):
+            integrated_state.append(state[ dim ] + derivative[ dim ] * delta_t)
+    
+    # RK4 - NOTE: only works for 2 D
+    elif method == 'rk4':
+        assert len(state)==2, "RK4 implementation only available for 2D arrays. Use 'euler' integrator instead."
+
+        # Create integrated state variable
+        integrated_state = []
+
+        # First step derivative
+        k1 = derivative
+
+        # Auxiliar state 1
+        aux_state_1 = []
+        for dim in range(2):
+            aux_state_1.append(state[ dim ] + k1[ dim ] * delta_t / 2)
+        
+        # Second step derivative
+        k2 = rotate_reference(derivative, state, aux_state_1)
+
+        # Auxiliar state 2
+        aux_state_2 = []
+        for dim in range(2):
+            aux_state_2.append(state[ dim ] + k2[ dim ] * delta_t / 2)
+
+        # Third step derivative
+        k3 = rotate_reference(derivative, state, aux_state_2)
+
+        # Auxiliar state 3
+        aux_state_3 = []
+        for dim in range(2):
+            aux_state_3.append(state[ dim ] + k2[ dim ] * delta_t)
+
+        # Fourth step derivative
+        k4 = rotate_reference(derivative, state, aux_state_3)
+
+        for dim in range(2):
+            integrated_state.append(state[ dim ] + ( k1[ dim ] + 2 * k2[ dim ] + 2 * k3[ dim ] + k4[ dim ] ) * delta_t / 6)
+
+    # Print error
+    else:
+        print('Error: ' + str(method) + ' not implemented. Please select a different integration method')
+        exit(0)
+
+
+    return integrated_state
+
+
+def propagate_dynamics(state, position, mass, velocity, track_direction, action, index, delta_t = inp.delta_t,
+                       integration_method = inp.integration_method):
     '''
     Propagates car dynamics based on current state and defined action
 
@@ -600,19 +681,22 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
     acc_y_tangent = np.cos(angle) * acceleration * velocity[1] / speed_norm
 
     # Compute normal acceleration
-    acc_x_normal = - np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * velocity[1] / speed_norm
-    acc_y_normal = np.sin(angle) * ( acceleration + speed_norm**2 / inp.wheelbase_length ) * velocity[0] / speed_norm
+    acc_x_normal = - np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[1] / speed_norm # acceleration + 
+    acc_y_normal = np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[0] / speed_norm # acceleration + 
 
     # Add normal and tangent accelerations in cartesian coordinates
     acc_x = acc_x_tangent + acc_x_normal 
     acc_y = acc_y_tangent + acc_y_normal
 
     # Propagate speed using Euler integrator
-    v = [velocity[0] + acc_x * delta_t, velocity[1] + acc_y * delta_t]
+    v = integrate(velocity, [acc_x, acc_y], delta_t, integration_method)
+    # v = [velocity[0] + acc_x * delta_t, velocity[1] + acc_y * delta_t]
 
+    new_position = integrate(position, v, delta_t, integration_method)
     # Propagate position using Euler integrator
-    new_position = [position[0] + velocity[0] * delta_t + 0.5 * acc_x * delta_t**2, position[1] + velocity[1] * delta_t + 0.5 * acc_y * delta_t**2]
+    # new_position = [position[0] + velocity[0] * delta_t + 0.5 * acc_x * delta_t**2, position[1] + velocity[1] * delta_t + 0.5 * acc_y * delta_t**2]
     new_position = np.array( new_position )
+
 
     ################
     # Update state #

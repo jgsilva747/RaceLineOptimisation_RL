@@ -31,8 +31,12 @@ if inp.log:
 
 # Create a custom environment that adheres to the OpenAI Gym interface.
 class CarEnvironment(gym.Env):
-    def __init__(self):
+    def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method):
         # TODO: explain function
+
+        # Define integration settings
+        self.delta_t = delta_t
+        self.integration_method = integration_method
 
         # Define initial mass
         self.mass_0 = inp.vehicle_mass + inp.fuel_mass # kg
@@ -192,10 +196,12 @@ class CarEnvironment(gym.Env):
                                                                                self.v_xy,
                                                                                track_direction,
                                                                                action,
-                                                                               self.circuit_index)
+                                                                               self.circuit_index,
+                                                                               delta_t = self.delta_t,
+                                                                               integration_method=self.integration_method)
 
         # Update time
-        self.time += inp.delta_t
+        self.time += self.delta_t
 
         # Update track position index
         new_circuit_index, current_distance_to_last_checkpoint, _ = util.get_circuit_index(new_position, self.circuit_index)

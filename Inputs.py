@@ -4,7 +4,10 @@ import torch
 chosen_circuit = "test curve"
 
 # Choose simulation time step
-delta_t = 0.025 # s
+delta_t = 0.01 # s
+
+# Integration method
+integration_method = 'euler'
 
 # Define initial velocity (in km/h)
 initial_velocity = 200 # km/h
@@ -48,16 +51,15 @@ circuit_factor = 1e5
 
 # Acceleration function parameters
 x1 = 5 * 900
-x2 = 7.3e-2  * 900
+x2 = 7.3e-2 * 900
 x3 = 55 # km/h
-x4 = 0.35  * 900 # 0.27
+x4 = 0.35 * 900 # 0.27
 
 # Normalisation factor for reward function (travelled distance in right direction)
 delta_distance_normalisation_factor = 1 / 10
 
 # Braking distance
 braking_distance = 150 # m
-
 
 #########################
 # DDPG Inputs ###########
