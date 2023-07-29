@@ -219,8 +219,8 @@ def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False):
 
             # Set variable noise
             if variable_noise:
-                if total_reward < max_reward - 5: # 15
-                    eps = 0.2 # 0.1
+                if total_reward < max_reward - 15: # 15
+                    eps = 0.2
                 else:
                     eps = 1
 
@@ -420,6 +420,8 @@ def handler(signum, frame):
     np.save("sarsa_trained_policy.npy", policy)
     ax_reward.legend(loc='upper left')
     plt.show()
+
+    print("\n\n")
     exit(0)
  
 signal.signal(signal.SIGINT, handler)
@@ -441,21 +443,22 @@ if __name__ == '__main__':
 
     Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)'''
 
-    '''
+
     ############
     # Variable #
     ############
     # Number of episodes
     n_episodes = int(1e4)
     # Factor to update Q(s,a)
-    alpha = 0.1 # 0.01 # 0.1
+    alpha = 0.025 # 0.01 # 0.1
     # Randomness factor
     eps = 0.2 # 1
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, True)'''
-
+    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, True)
+    
+    '''
     ##################
     # epsilon-greedy #
     ##################
@@ -468,7 +471,7 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)
+    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)'''
 
     # Save policy
     np.save("sarsa_trained_policy.npy", policy)
