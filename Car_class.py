@@ -14,24 +14,14 @@ import os
 
 import Inputs as inp
 import Model_utilities as util
-from Model_utilities import coordinates
+from Model_utilities import coordinates, MAX_INDEX
 
-if inp.log:
 
-    # Specify the log file name
-    log_file = 'environment_log.log'
-
-    # Delete the log file if it already exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
-
-    # Configure the logging settings (you can modify the filename, log level, etc.)
-    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-
+# TODO: comment logging codes
 
 # Create a custom environment that adheres to the OpenAI Gym interface.
 class CarEnvironment(gym.Env):
-    def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method):
+    def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method, log_file = 'run_log.txt'): # .log
         # TODO: explain function
 
         # Define integration settings
@@ -146,21 +136,48 @@ class CarEnvironment(gym.Env):
         # Auxiliar variables used in reward function
         self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance = 0
+        self.reward = 0
 
         # Define initial state
         state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
         self.state_0 = np.concatenate( [state_branch , self.curvature_list_0 , self.lidar_samples_0 , [self.track_limits_0]] )
+        
+        if inp.log:
 
-    def reset(self):
+            self.log_file = log_file
+            print("Opening " + self.log_file)
+
+            # Delete the log file if it already exists
+            if os.path.exists(self.log_file):
+                os.remove(self.log_file)
+            
+            self.info_logger = logging.getLogger(self.log_file)
+
+            info_handler = logging.FileHandler(self.log_file)
+
+            formatter = logging.Formatter('%(message)s')
+
+            info_handler.setFormatter(formatter)
+
+            self.info_logger.addHandler(info_handler)
+
+            self.info_logger.setLevel(logging.INFO)
+
+            # Configure the logging settings (you can modify the filename, log level, etc.)
+            # self.info_log = logging.basicConfig(filename=self.log_file, level=logging.INFO, format='%(message)s') # s
+            
+
+    def reset(self, seed = inp.seed):
         # TODO: explain function
 
         if inp.log:
             # Log info from last run
-            logging.info(f"Travelled Distance: {self.travelled_distance}, Position: {self.current_position}")
+            self.info_logger.info(float(self.reward))
+            # logging.info(f"Travelled Distance: {self.travelled_distance}, Position: {self.current_position}")
 
 
         # Reset seed
-        super().reset(seed=inp.seed)
+        super().reset(seed=seed)
 
         # Reset initial state
         self.state = self.state_0
@@ -178,7 +195,8 @@ class CarEnvironment(gym.Env):
 
         # Reset auxiliar variables used in reward function
         self.previous_distance_to_last_checkpoint = 0
-        self.travelled_distance  = 0
+        self.travelled_distance = 0
+        self.reward = 0
 
         return self.state, self.current_position
 
@@ -186,6 +204,8 @@ class CarEnvironment(gym.Env):
         # TODO: explain function
 
         # Track direction
+        if self.circuit_index >= MAX_INDEX:
+            self.circuit_index -= 1
         track_direction = coordinates[self.circuit_index + 1] - coordinates[self.circuit_index]
         track_direction = track_direction / np.linalg.norm(track_direction)
 
@@ -232,10 +252,12 @@ class CarEnvironment(gym.Env):
                                                  current_distance_to_last_checkpoint,
                                                  self.state[1:3])
 
-  
+
         # Update previous distance to last checkpoint
         self.previous_distance_to_last_checkpoint = current_distance_to_last_checkpoint
 
         self.travelled_distance += delta_distance
 
-        return self.state, reward, self.done, False, self.current_position # , self.travelled_distance  
+        self.reward += reward
+
+        return self.state, reward, self.done, False, self.current_position # , self.travelled_distance

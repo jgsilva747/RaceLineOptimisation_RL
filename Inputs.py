@@ -98,9 +98,9 @@ learning_rate_actor = 0.00003 # 6e-4 # 8e-4 # 3e-3
 learning_rate_critic = 0.00003 # 4e-2 # 2e-2
 
 # show episode plot (trajectories)
-plot_episode = False
+plot_episode = True
 # show reward and action plot
-plot_stats = True
+plot_stats = False
 
 # Noise parameters
 theta = 0.15 # 0.15 from paper

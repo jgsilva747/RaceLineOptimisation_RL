@@ -1,6 +1,6 @@
 import numpy as np
 import yaml
-import argparse
+import torch
 import d3rlpy
 from d3rlpy.dataset import ReplayBuffer
 import matplotlib.pyplot as plt
@@ -12,20 +12,13 @@ from Model_utilities import coordinates_in, coordinates_out
 from Car_class import CarEnvironment
 
 
-with open('sac_inputs.yml') as f:
-    sac_inputs = yaml.load(f, Loader=yaml.FullLoader)
+# with open('sac_inputs.yml') as f:
+#     sac_inputs = yaml.load(f, Loader=yaml.FullLoader)
 
-d3rlpy.seed(inp.seed)
 
 def train() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--env", type=str, default="Pendulum-v1")
-    parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--n-steps", type=int, default=1)
-    parser.add_argument("--gpu", action="store_true")
-    args = parser.parse_args()
 
-    env = CarEnvironment()
+    env = CarEnvironment(log_file='sac_training.txt')
     eval_env = CarEnvironment()
 
     # setup algorithm
@@ -38,11 +31,11 @@ def train() -> None:
         tau=0.001,
         n_critics=2,
         action_scaler=d3rlpy.preprocessing.MinMaxActionScaler(),
-    ).create(device=False)
+    ).create(device=inp.device)
 
     # multi-step transition sampling
     transition_picker = d3rlpy.dataset.MultiStepTransitionPicker(
-        n_steps=args.n_steps,
+        n_steps=100000,
         gamma=0.99,
     )
 
@@ -128,7 +121,12 @@ def test_trained() -> None:
 
 if __name__ == "__main__":
 
-    # train()
+    # For reproducibility
+    np.random.seed(inp.seed)
+    d3rlpy.seed(inp.seed)
+    torch.manual_seed(inp.seed)
+
+    train()
 
     test_trained()
 

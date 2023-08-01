@@ -474,7 +474,7 @@ if __name__ == '__main__':
     Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)'''
 
     # Save policy
-    np.save("sarsa_trained_policy.npy", policy)
+    # np.save("sarsa_trained_policy.npy", policy)
 
     # Test learnt policy
     test_trained() 

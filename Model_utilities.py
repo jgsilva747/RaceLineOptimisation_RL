@@ -13,8 +13,6 @@ import os
 
 # File imports
 import Inputs as inp
- 
-
 
 
 ###########################################
@@ -256,7 +254,7 @@ def assess_termination(position, index, time, margin = inp.left_track_margin):
     '''
 
     # Assess if car has reached finish line
-    if index == MAX_INDEX: # successfully reached finish line
+    if index >= MAX_INDEX: # successfully reached finish line
         return True, False, True # end simulation
     
     # Assess if simulation time was exceeded
