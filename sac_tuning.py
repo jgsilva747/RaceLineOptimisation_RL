@@ -1,32 +1,62 @@
 # General imports
 import numpy as np
-import yaml
 import torch
 import os
 import d3rlpy
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.rcParams.update({'font.size':12})
 import logging
 
 # d3rlpy specifics
-from d3rlpy.dataset import ReplayBuffer, BufferProtocol
-from d3rlpy.metrics import EnvironmentEvaluator
-from d3rlpy.models.optimizers import SGDFactory, AdamFactory, RMSpropFactory
-from d3rlpy.models.encoders import DefaultEncoderFactory, PixelEncoderFactory, VectorEncoderFactory, DenseEncoderFactory
-from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory, IQNQFunctionFactory
-from d3rlpy.preprocessing import MinMaxRewardScaler, StandardRewardScaler, ReturnBasedRewardScaler, MultiplyRewardScaler
+# from d3rlpy.dataset import ReplayBuffer, BufferProtocol
+# from d3rlpy.metrics import EnvironmentEvaluator
+from d3rlpy.models.optimizers import SGDFactory, AdamFactory
+from d3rlpy.models.encoders import DefaultEncoderFactory, DenseEncoderFactory
+from d3rlpy.models.q_functions import MeanQFunctionFactory, QRQFunctionFactory
+from d3rlpy.preprocessing import MultiplyRewardScaler
 
 # File imports
 import Inputs as inp
-from Model_utilities import coordinates_in, coordinates_out
+# from Model_utilities import coordinates_in, coordinates_out
 from Car_class import CarEnvironment
-from nn_funcs import CustomEncoderFactory
+# from nn_funcs import CustomEncoderFactory
 
 
+# List of tunable settings, with respective test values
 
-with open('sac_inputs.yml') as f:
-    sac_inputs = yaml.load(f, Loader=yaml.FullLoader)
+settings_dict = {# 'batch_size' : [64, 128, 512], # done
+                # 'gamma' : [0.5, 0.75, 0.9, 0.95], # done
+                # 'actor_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
+                # 'critic_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
+                # 'temp_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
+                # 'tau' : [1e-4, 5e-3, 1e-2, 1e-1], # done
+                # 'n_critics' : [1, 3, 4, 5], # done
+                # # 'n_steps' : [],
+                # 'limit' : [1000, 5000, 10000, 25000, 100000], # done
+                # 'n_steps_per_epoch' : [100, 500, 2000], # done
+                # 'update_interval' : [2, 5, 10], # done
+                # 'update_start_step' : [100, 500, 2000], # done
+                # 'random_steps' : [100, 500, 2000], # done
+                # 'initial_temperature' : [2.0, 5.0, 10.0], # done
+                # # 'eval_env' : [EnvironmentEvaluator(env_default)], # error
+                # # 'buffer' : [ReplayBuffer(BufferProtocol, cache_size=default_settings.get('limit'), env=env_default)], # error
+                # 'optim_factory' : [AdamFactory(amsgrad=True), # done
+                #                 SGDFactory()], # done
+                #                 # RMSpropFactory()], # error
+                # 'encoder' : [DefaultEncoderFactory(activation='tanh'), # done
+                #             DefaultEncoderFactory(activation='swish'), # done
+                #             DefaultEncoderFactory(activation='none'), # done
+                #             # PixelEncoderFactory(), # error
+                #             # VectorEncoderFactory(), # error
+                #             DenseEncoderFactory()], # done
+                # 'q_func' : [QRQFunctionFactory()], # done
+                            # IQNQFunctionFactory()], # extremely slow --> cancelled
+                'reward_scaler' : [# MinMaxRewardScaler(), # error
+                                # StandardRewardScaler(), # error
+                                # ReturnBasedRewardScaler(), # error
+                                #MultiplyRewardScaler(0.1), # done
+                                #MultiplyRewardScaler(10), # done
+                                #MultiplyRewardScaler(20), # done
+                                MultiplyRewardScaler(50), # TODO
+                                MultiplyRewardScaler(100)]} # TODO
 
 
 env_default = CarEnvironment()
@@ -52,6 +82,29 @@ default_settings = {'batch_size' : 256,
                     'encoder' : DefaultEncoderFactory(),
                     'q_func' : MeanQFunctionFactory(),
                     'reward_scaler' : None}
+
+
+
+# DEFINE "OPTIMAL" SETTINGS
+chosen_settings = {'batch_size' : 64,
+                    'gamma' : 0.90,
+                    'actor_learning_rate' : 5e-4,
+                    'critic_learning_rate' : 3e-3,
+                    'temp_learning_rate' : 5e-4,
+                    'tau' : 0.1,
+                    'n_critics' : 4,
+                    'n_steps' : 50000,
+                    'limit' : 2 * 50000, # 2 * n_steps
+                    'n_steps_per_epoch' : 100,
+                    'update_interval' : 2,
+                    'update_start_step' : 500,
+                    'random_steps' : 500,
+                    'initial_temperature' : 2.0,
+                    'eval_env' : env_default,
+                    'optim_factory' : AdamFactory(),
+                    'encoder' : DenseEncoderFactory(),
+                    'q_func' : QRQFunctionFactory()(),
+                    'reward_scaler' : MultiplyRewardScaler(10)}
 
 
 log_file = 'run_log.txt'
@@ -134,13 +187,6 @@ def tune_settings(setting_name = 'default', value = 0):
     sac.save(current_dir + str(value) + '.d3')
 
 
-def plot_tuning():
-    ...
-
-    # read log files (.txt)
-    # run trained agent?
-
-
 
 if __name__ == "__main__":
 
@@ -163,41 +209,6 @@ if __name__ == "__main__":
     error_logger.setLevel(logging.INFO)
 
     error_msg = []
-
-    # List of tunable settings, with respective test values
-
-    settings_dict = {'batch_size' : [64, 128, 512], # done
-                     'gamma' : [0.5, 0.75, 0.9, 0.95], # done
-                     'actor_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                     'critic_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                     'temp_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                     'tau' : [1e-4, 5e-3, 1e-2, 1e-1], # done
-                     'n_critics' : [1, 3, 4, 5], # done
-                     # 'n_steps' : [],
-                     'limit' : [1000, 5000, 10000, 25000, 100000], # done
-                     'n_steps_per_epoch' : [100, 500, 2000], # done
-                     'update_interval' : [2, 5, 10], # done
-                     'update_start_step' : [100, 500, 2000], # done
-                     'random_steps' : [100, 500, 2000], # done
-                     'initial_temperature' : [2.0, 5.0, 10.0], # done
-                     'eval_env' : [EnvironmentEvaluator(env_default)], # error
-                     'buffer' : [ReplayBuffer(BufferProtocol, cache_size=default_settings.get('limit'), env=env_default)], # error
-                     'optim_factory' : [AdamFactory(amsgrad=True), # done
-                                        SGDFactory(), # done
-                                        RMSpropFactory()], # error
-                     'encoder' : [DefaultEncoderFactory(activation='tanh'), # done
-                                  DefaultEncoderFactory(activation='swish'), # done
-                                  DefaultEncoderFactory(activation='none'), # done
-                                  PixelEncoderFactory(), # error
-                                  VectorEncoderFactory(), # error
-                                  DenseEncoderFactory()], # done
-                     'q_func' : [QRQFunctionFactory(), # done
-                                 IQNQFunctionFactory()], # extremely slow --> cancelled
-                     'reward_scaler' : [MinMaxRewardScaler(), # error
-                                        StandardRewardScaler(), # error
-                                        ReturnBasedRewardScaler(), # error
-                                        MultiplyRewardScaler(0.1), # done
-                                        MultiplyRewardScaler(10)]} # done
     
     # Run default settings
     tune_settings()

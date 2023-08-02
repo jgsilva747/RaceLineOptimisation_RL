@@ -1,9 +1,2 @@
-Error when using <d3rlpy.metrics.evaluators.EnvironmentEvaluator object at 0x00000208EE2AD0D0> in eval_env
-Error when using <d3rlpy.dataset.replay_buffer.ReplayBuffer object at 0x00000208EE2AD110> in buffer
-Error when using RMSpropFactory(alpha=0.95, eps=0.01, weight_decay=0.0, momentum=0.0, centered=True) in optim_factory
-Error when using PixelEncoderFactory(filters=[[32, 8, 4], [64, 4, 2], [64, 3, 1]], feature_size=512, activation='relu', use_batch_norm=False, dropout_rate=None, exclude_last_activation=False) in encoder
-Error when using VectorEncoderFactory(hidden_units=[256, 256], activation='relu', use_batch_norm=False, dropout_rate=None, use_dense=False, exclude_last_activation=False) in encoder
-Error when using IQNQFunctionFactory(share_encoder=False, n_quantiles=64, n_greedy_quantiles=32, embed_size=64) in q_func
-Error when using MinMaxRewardScaler(minimum=None, maximum=None, multiplier=1.0) in reward_scaler
-Error when using StandardRewardScaler(mean=None, std=None, eps=0.001, multiplier=1.0) in reward_scaler
-Error when using ReturnBasedRewardScaler(return_max=None, return_min=None, multiplier=1.0) in reward_scaler
+Error when using MultiplyRewardScaler(multiplier=50) in reward_scaler
+Error when using MultiplyRewardScaler(multiplier=100) in reward_scaler

@@ -1,11 +1,42 @@
-train:
-  seed: 0
-eval:
-  seed: 1
-agent:
-  actor_learning_rate: 3e-3
-  critic_learning_rate: 2e-3
-device: None
+chosen_settings:    
+    batch_size : 64
+    gamma : 0.90
+    actor_learning_rate : 0.0005 # 5e-4
+    critic_learning_rate : 0.003 # 3e-3
+    temp_learning_rate : 0.0005  # 5e-4
+    tau : 0.1
+    n_critics : 4
+    initial_temperature : 2.0
+chosen_extra:
+    n_steps : 1000000
+    limit : 2000000
+    update_interval : 2
+    update_start_step : 500
+    n_steps_per_epoch : 100
+    random_steps : 500
+default_extra:
+    n_steps : 1000000
+    limit : 2000000
+    n_steps_per_epoch : 1000
+    update_interval : 1
+    update_start_step : 1000
+    random_steps : 1000
+default_settings:    
+    batch_size : 256
+    gamma : 0.99
+    actor_learning_rate : 3e-4
+    critic_learning_rate : 3e-4
+    temp_learning_rate : 3e-4
+    tau : 0.001
+    n_critics : 2
+    initial_temperature : 1.0
+    actor_optim_factory : d3rlpy.models.optimizers.AdamFactory()
+    critic_optim_factory : d3rlpy.models.optimizers.AdamFactory()
+    temp_optim_factory : d3rlpy.models.optimizers.AdamFactory()
+    actor_encoder_factory : d3rlpy.models.encoders.DefaultEncoderFactory()
+    critic_encoder_factory : d3rlpy.models.encoders.DefaultEncoderFactory()
+    q_func_factory : d3rlpy.models.q_functions.MeanQFunctionFactory()
+    reward_scaler : None
 
 
 # d3rlpy==1.1.1
