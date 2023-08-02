@@ -5,7 +5,7 @@ import os
 import d3rlpy
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.rcParams.update({'font.size':12})
+matplotlib.rcParams.update({'font.size':14})
 
 
 # File imports
@@ -27,10 +27,35 @@ if not os.path.exists(plot_dir):
 
 
 
-def plot_tuning():
-    ...
+def plot_tuning(settings, value, label = None):
+    
+    # Read data
+    file_name = "./tuning/" + settings + "/" + str(value) + ".txt"
+    data_array = np.genfromtxt(file_name)
 
-    # read log files (.txt)
+    # Remove repeated entry in the beginning, remove last unfinished entry
+    data_array = data_array[1:-1]
+
+    # Create array with number of steps
+    steps_array = np.arange(0, n_steps + 1, n_steps / (len(data_array) - 1) )
+
+    # Create array of median values
+    if plot_median:
+        
+        median_array = np.array( data_array )
+
+        for i in range(len(data_array)):
+
+            index_min = max(0, i + 1 - batch_size)
+            median_array[i] = np.median( data_array[index_min : i+1] )
+        
+        data_array = median_array
+    
+    if label is None:
+        label = str(value)
+
+    # Plot reward evolution
+    ax.plot(steps_array, data_array, color=color_array[ values_array.index( value ) ], label=label)
 
 
 
@@ -46,7 +71,7 @@ if __name__ == "__main__":
 
 
     # Read default data
-    file_name = "./tuning/default/0.txt"
+    file_name = "./tuning/default/sac_default.txt"
     default_data = np.genfromtxt(file_name)
     default_data = default_data[1:-1]
 
@@ -68,6 +93,26 @@ if __name__ == "__main__":
         
         default_data = median_array
 
+    # Read chosen data
+    file_name = "./tuning/default/sac_chosen.txt"
+    chosen_data = np.genfromtxt(file_name)
+    chosen_data = chosen_data[1:-1]
+
+    # Create array with number of steps
+    chosen_steps_array = np.arange(0, n_steps + 1, n_steps / (len(chosen_data) - 1) )
+
+    # Create array of median values
+    if plot_median:
+        
+        median_array = np.array( chosen_data )
+
+        for i in range(len(chosen_data)):
+
+            index_min = max(0, i + 1 - batch_size)
+            median_array[i] = np.median( chosen_data[index_min : i+1] )
+        
+        chosen_data = median_array
+
 
     # Loop over available settings
     for settings in settings_dict:
@@ -83,39 +128,32 @@ if __name__ == "__main__":
         # Loop over selected values
         for value in values_array:
 
-            # Read data
-            file_name = "./tuning/" + settings + "/" + str(value) + ".txt"
-            data_array = np.genfromtxt(file_name)
+            plot_tuning(settings, value)
 
-            # Remove repeated entry in the beginning, remove last unfinished entry
-            data_array = data_array[1:-1]
-
-            # Create array with number of steps
-            steps_array = np.arange(0, n_steps + 1, n_steps / (len(data_array) - 1) )
-
-            # Create array of median values
-            if plot_median:
-                
-                median_array = np.array( data_array )
-
-                for i in range(len(data_array)):
-
-                    index_min = max(0, i + 1 - batch_size)
-                    median_array[i] = np.median( data_array[index_min : i+1] )
-                
-                data_array = median_array
-
-            # Plot reward evolution
-            ax.plot(steps_array, data_array, color=color_array[ values_array.index( value ) ], label=str(value))
-
-        # Plot default value
+        # Plot default results
         ax.plot(default_steps_array, default_data, color='tab:red', label='default')
+        # Plot tuned results
+        # ax.plot(chosen_steps_array, chosen_data, color='k', label='tuned')
         
         # ax.legend(loc = 'best')
         fig.legend(loc = 'outside lower center', #loc='upper center', bbox_to_anchor=(0.5, -0.15),
             #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25),
             fancybox=True, shadow=True, ncol = len(values_array) + 1 )
+        ax.set_ylabel('Reward [-]')
+        ax.set_xlabel('Steps [-]')
         print("===========================\n")
     
+
+    fig, ax = plt.subplots(figsize=(8,5))
+    # Plot default results
+    ax.plot(default_steps_array, default_data, color='tab:blue', label='default')
+    # Plot tuned results
+    ax.plot(chosen_steps_array, chosen_data, color='tab:orange', label='tuned')
+    fig.legend(loc = 'outside lower center', #loc='upper center', bbox_to_anchor=(0.5, -0.15),
+            #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25),
+            fancybox=True, shadow=True, ncol = len(values_array) + 1 )
+    ax.grid()
+    ax.set_ylabel('Reward [-]')
+    ax.set_xlabel('Steps [-]')
     plt.show()
 

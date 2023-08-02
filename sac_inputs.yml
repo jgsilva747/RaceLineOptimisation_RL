@@ -1,11 +1,11 @@
 chosen_settings:    
     batch_size : 64
-    gamma : 0.90
+    gamma : 0.99
     actor_learning_rate : 0.0005 # 5e-4
     critic_learning_rate : 0.003 # 3e-3
-    temp_learning_rate : 0.0005  # 5e-4
+    temp_learning_rate : 0.0003 # 0.0005  # 5e-4
     tau : 0.1
-    n_critics : 4
+    n_critics : 2 # 4
     initial_temperature : 2.0
 chosen_extra:
     n_steps : 50000

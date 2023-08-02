@@ -23,18 +23,18 @@ reward_scaler = d3rlpy.preprocessing.MultiplyRewardScaler(20) # 10
 
 def train() -> None:
 
-    env_chosen = CarEnvironment(log_file='sac_chosen.txt')
+    env_chosen = CarEnvironment(log_file='./tuning/default/sac4_chosen.txt')
     env_default = CarEnvironment(log_file='sac_default.txt')
     eval_env = CarEnvironment()
 
     # setup algorithm
     sac_chosen = d3rlpy.algos.SACConfig(**sac_inputs["chosen_settings"],
-                                        actor_optim_factory = optim_factory,
-                                        critic_optim_factory = optim_factory,
-                                        temp_optim_factory = optim_factory,
+                                        #actor_optim_factory = optim_factory,
+                                        #critic_optim_factory = optim_factory,
+                                        #temp_optim_factory = optim_factory,
                                         actor_encoder_factory = encoder_factory,
                                         critic_encoder_factory = encoder_factory,
-                                        q_func_factory = q_func_factory,
+                                        #q_func_factory = q_func_factory,
                                         reward_scaler = reward_scaler).create(device=inp.device)
 
     sac_default = d3rlpy.algos.SACConfig().create(device=inp.device)
@@ -74,29 +74,29 @@ def train() -> None:
         save_interval=sac_inputs["chosen_extra"]["n_steps"]
     )
     # Save trained agent
-    sac_chosen.save('sac_chosen.d3')
+    sac_chosen.save('./tuning/default/sac4_chosen.d3')
 
-    # start training default agent
-    sac_default.fit_online(
-        env_default,
-        buffer_default,
-        eval_env=eval_env,
-        n_steps=sac_inputs["default_extra"]["n_steps"],
-        n_steps_per_epoch=sac_inputs["default_extra"]["n_steps_per_epoch"],
-        update_interval=sac_inputs["default_extra"]["update_interval"],
-        update_start_step=sac_inputs["default_extra"]["update_start_step"],
-        random_steps=sac_inputs["default_extra"]["random_steps"],
-        save_interval=sac_inputs["default_extra"]["n_steps"]
-    )
+    # # start training default agent
+    # sac_default.fit_online(
+    #     env_default,
+    #     buffer_default,
+    #     eval_env=eval_env,
+    #     n_steps=sac_inputs["default_extra"]["n_steps"],
+    #     n_steps_per_epoch=sac_inputs["default_extra"]["n_steps_per_epoch"],
+    #     update_interval=sac_inputs["default_extra"]["update_interval"],
+    #     update_start_step=sac_inputs["default_extra"]["update_start_step"],
+    #     random_steps=sac_inputs["default_extra"]["random_steps"],
+    #     save_interval=sac_inputs["default_extra"]["n_steps"]
+    # )
 
-    # Save trained agent
-    sac_default.save('sac_default.d3')
+    # # Save trained agent
+    # sac_default.save('sac_default.d3')
 
 
 def test_trained() -> None:
     
-    sac_chosen = d3rlpy.load_learnable("sac_chosen.d3", device=None)
-    sac_default = d3rlpy.load_learnable("sac_default.d3", device=None)
+    sac_chosen = d3rlpy.load_learnable("tuning/default/sac4_chosen.d3", device=None)
+    sac_default = d3rlpy.load_learnable("tuning/default/sac_default.d3", device=None)
 
     env = CarEnvironment()
 
@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
     train()
 
-    test_trained()
+    # test_trained()
 
 
 ################
