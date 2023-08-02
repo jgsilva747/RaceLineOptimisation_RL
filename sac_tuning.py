@@ -22,41 +22,41 @@ from Car_class import CarEnvironment
 
 # List of tunable settings, with respective test values
 
-settings_dict = {# 'batch_size' : [64, 128, 512], # done
-                # 'gamma' : [0.5, 0.75, 0.9, 0.95], # done
-                # 'actor_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                # 'critic_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                # 'temp_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                # 'tau' : [1e-4, 5e-3, 1e-2, 1e-1], # done
-                # 'n_critics' : [1, 3, 4, 5], # done
-                # # 'n_steps' : [],
-                # 'limit' : [1000, 5000, 10000, 25000, 100000], # done
-                # 'n_steps_per_epoch' : [100, 500, 2000], # done
-                # 'update_interval' : [2, 5, 10], # done
-                # 'update_start_step' : [100, 500, 2000], # done
-                # 'random_steps' : [100, 500, 2000], # done
-                # 'initial_temperature' : [2.0, 5.0, 10.0], # done
-                # # 'eval_env' : [EnvironmentEvaluator(env_default)], # error
-                # # 'buffer' : [ReplayBuffer(BufferProtocol, cache_size=default_settings.get('limit'), env=env_default)], # error
-                # 'optim_factory' : [AdamFactory(amsgrad=True), # done
-                #                 SGDFactory()], # done
-                #                 # RMSpropFactory()], # error
-                # 'encoder' : [DefaultEncoderFactory(activation='tanh'), # done
-                #             DefaultEncoderFactory(activation='swish'), # done
-                #             DefaultEncoderFactory(activation='none'), # done
-                #             # PixelEncoderFactory(), # error
-                #             # VectorEncoderFactory(), # error
-                #             DenseEncoderFactory()], # done
-                # 'q_func' : [QRQFunctionFactory()], # done
+settings_dict = {'batch_size' : [64, 128, 512], # done
+                'gamma' : [0.5, 0.75, 0.9, 0.95], # done
+                'actor_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
+                'critic_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
+                'temp_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
+                'tau' : [1e-4, 5e-3, 1e-2, 1e-1], # done
+                'n_critics' : [1, 3, 4, 5], # done
+                # 'n_steps' : [],
+                'limit' : [1000, 5000, 10000, 25000, 100000], # done
+                'n_steps_per_epoch' : [100, 500, 2000], # done
+                'update_interval' : [2, 5, 10], # done
+                'update_start_step' : [100, 500, 2000], # done
+                'random_steps' : [100, 500, 2000], # done
+                'initial_temperature' : [2.0, 5.0, 10.0], # done
+                # 'eval_env' : [EnvironmentEvaluator(env_default)], # error
+                # 'buffer' : [ReplayBuffer(BufferProtocol, cache_size=default_settings.get('limit'), env=env_default)], # error
+                'optim_factory' : [AdamFactory(amsgrad=True), # done
+                                SGDFactory()], # done
+                                # RMSpropFactory()], # error
+                'encoder' : [DefaultEncoderFactory(activation='tanh'), # done
+                            DefaultEncoderFactory(activation='swish'), # done
+                            DefaultEncoderFactory(activation='none'), # done
+                            # PixelEncoderFactory(), # error
+                            # VectorEncoderFactory(), # error
+                            DenseEncoderFactory()], # done
+                'q_func' : [QRQFunctionFactory()], # done
                             # IQNQFunctionFactory()], # extremely slow --> cancelled
                 'reward_scaler' : [# MinMaxRewardScaler(), # error
                                 # StandardRewardScaler(), # error
                                 # ReturnBasedRewardScaler(), # error
-                                #MultiplyRewardScaler(0.1), # done
-                                #MultiplyRewardScaler(10), # done
-                                #MultiplyRewardScaler(20), # done
-                                MultiplyRewardScaler(50), # TODO
-                                MultiplyRewardScaler(100)]} # TODO
+                                MultiplyRewardScaler(0.1), # done
+                                MultiplyRewardScaler(10), # done
+                                MultiplyRewardScaler(20),
+                                MultiplyRewardScaler(50),
+                                MultiplyRewardScaler(100)]}
 
 
 env_default = CarEnvironment()
@@ -103,7 +103,7 @@ chosen_settings = {'batch_size' : 64,
                     'eval_env' : env_default,
                     'optim_factory' : AdamFactory(),
                     'encoder' : DenseEncoderFactory(),
-                    'q_func' : QRQFunctionFactory()(),
+                    'q_func' : QRQFunctionFactory(),
                     'reward_scaler' : MultiplyRewardScaler(10)}
 
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     error_msg = []
     
     # Run default settings
-    tune_settings()
+    #tune_settings()
 
     # Loop over available settings
     for settings in settings_dict:

@@ -1,7 +1,7 @@
 import torch
 
 # Choose circuit here
-chosen_circuit = "silverstone"
+chosen_circuit = "test curve"
 
 # Choose simulation time step
 delta_t = 0.015 # s

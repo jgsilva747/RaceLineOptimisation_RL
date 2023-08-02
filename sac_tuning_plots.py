@@ -31,17 +31,11 @@ def plot_tuning():
     ...
 
     # read log files (.txt)
-    # run trained agent?
+
 
 
 
 if __name__ == "__main__":
-
-    # For reproducibility
-    np.random.seed(inp.seed)
-    d3rlpy.seed(inp.seed)
-    torch.manual_seed(inp.seed)
-
 
     color_array = ['tab:blue',
                    'tab:orange',

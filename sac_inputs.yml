@@ -8,15 +8,15 @@ chosen_settings:
     n_critics : 4
     initial_temperature : 2.0
 chosen_extra:
-    n_steps : 1000000
-    limit : 2000000
+    n_steps : 50000
+    limit : 100000 # 2 * n_steps
     update_interval : 2
     update_start_step : 500
     n_steps_per_epoch : 100
     random_steps : 500
 default_extra:
-    n_steps : 1000000
-    limit : 2000000
+    n_steps : 50000
+    limit : 50000
     n_steps_per_epoch : 1000
     update_interval : 1
     update_start_step : 1000

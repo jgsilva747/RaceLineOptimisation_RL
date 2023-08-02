@@ -1,2 +1,1 @@
-Error when using MultiplyRewardScaler(multiplier=50) in reward_scaler
-Error when using MultiplyRewardScaler(multiplier=100) in reward_scaler
+Error when using 0.0 in initial_temperature

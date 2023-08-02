@@ -18,7 +18,7 @@ with open('sac_inputs.yml') as f:
 optim_factory = d3rlpy.models.optimizers.AdamFactory()
 encoder_factory = d3rlpy.models.encoders.DenseEncoderFactory()
 q_func_factory = d3rlpy.models.q_functions.QRQFunctionFactory()
-reward_scaler = d3rlpy.preprocessing.MultiplyRewardScaler(10)
+reward_scaler = d3rlpy.preprocessing.MultiplyRewardScaler(20) # 10
 
 
 def train() -> None:

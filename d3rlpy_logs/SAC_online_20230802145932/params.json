@@ -1,0 +1,92 @@
+{
+  "observation_shape": [
+    24
+  ],
+  "action_size": 2,
+  "config": {
+    "type": "sac",
+    "params": {
+      "batch_size": 64,
+      "gamma": 0.9,
+      "observation_scaler": {
+        "type": "none",
+        "params": {}
+      },
+      "action_scaler": {
+        "type": "none",
+        "params": {}
+      },
+      "reward_scaler": {
+        "type": "multiply",
+        "params": {
+          "multiplier": 10
+        }
+      },
+      "actor_learning_rate": 0.0005,
+      "critic_learning_rate": 0.003,
+      "temp_learning_rate": 0.0005,
+      "actor_optim_factory": {
+        "type": "adam",
+        "params": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false
+        }
+      },
+      "critic_optim_factory": {
+        "type": "adam",
+        "params": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false
+        }
+      },
+      "temp_optim_factory": {
+        "type": "adam",
+        "params": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false
+        }
+      },
+      "actor_encoder_factory": {
+        "type": "dense",
+        "params": {
+          "activation": "relu",
+          "use_batch_norm": false,
+          "dropout_rate": null
+        }
+      },
+      "critic_encoder_factory": {
+        "type": "dense",
+        "params": {
+          "activation": "relu",
+          "use_batch_norm": false,
+          "dropout_rate": null
+        }
+      },
+      "q_func_factory": {
+        "type": "qr",
+        "params": {
+          "share_encoder": false,
+          "n_quantiles": 32
+        }
+      },
+      "tau": 0.1,
+      "n_critics": 4,
+      "initial_temperature": 2.0
+    }
+  }
+}
