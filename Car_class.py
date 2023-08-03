@@ -148,7 +148,8 @@ class CarEnvironment(gym.Env):
         
         self.reward_function = reward_function
 
-        assert reward_function in inp.reward_list, f"{reward_function} not implemented. Please pick one from {inp.reward_list.strip('][')}"
+        for func in reward_function:
+            assert func in inp.reward_list, f"{func} not implemented. Please pick one from {inp.reward_list}"
 
         self.logging_flag = False
         if inp.log and log_file != 'run_log.txt':

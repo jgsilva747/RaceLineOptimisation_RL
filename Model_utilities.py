@@ -807,25 +807,25 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
     [5] --> 'min_curvature']
     '''
     current_reward = 0
+    delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
+
+    # Reset distance when new index is reached
+    # otherwise delta would cancel out everyting that
+    # was achieved before (e.g.: delta = - 400 m)
+    if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
+        delta_distance_travelled = 0
 
     # Add distance reward
-    if any(reward_function) == 'distance':
-        delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
-
-        # Reset distance when new index is reached
-        # otherwise delta would cancel out everyting that
-        # was achieved before (e.g.: delta = - 400 m)
-        if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
-            delta_distance_travelled = 0
+    if 'distance' in reward_function:
 
         current_reward += delta_distance_travelled * inp.delta_distance_normalisation_factor # - inp.delta_t
     
     # Add time reward/penalty
-    if any(reward_function) == 'time':
+    if 'time' in reward_function:
         current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
     
     # Add forward velocity reward (equivalent to travelled distance)
-    if any(reward_function) == 'forward_velocity':
+    if 'forward_velocity' in reward_function:
 
         v_norm = state[0]
         delta = state[3] # angle between velocity direction and centerline
@@ -835,14 +835,14 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         current_reward += fwd_v * inp.velocity_normalisation_factor
     
     # Add maximum velocity reward (go as fast as possible, brake as quickly as possible)
-    if any(reward_function) == 'max_velocity':
+    if 'max_velocity' in reward_function:
         delta_v = ( state[0] - prev_v )
 
         # Add 0 when braking/coasting, add reward when accelerating
         current_reward += max( 0 , delta_v) * inp.velocity_normalisation_factor
     
     # Add action instability penalty
-    if any(reward_function) == 'constant_action':
+    if 'constant_action' in reward_function:
         
         # NOTE: Only applied to steering. Code for throttle is analogous, but using index [0] instead of [1]
         # eg: throttle = *_action[0]
@@ -859,8 +859,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
 
     
     # Add steering penality to force car to turn as little as possible
-    if any(reward_function) == 'min_curvature':
-        pass
+    if 'min_curvature' in reward_function:
+        pass # TODO
 
     # Finish line reward
     if finish_line:

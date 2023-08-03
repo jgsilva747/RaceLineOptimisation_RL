@@ -21,17 +21,17 @@ reward_scaler = d3rlpy.preprocessing.MultiplyRewardScaler(20)
 plot_median = False
 n_median = 1
 
-global env
+global sac
 global file_name
 
 
 
 def train(reward_function) -> None:
 
-    global env
+    global sac
     global file_name
 
-    file_name = './reward_test/' + str(reward_function)
+    file_name = './reward_test/' + str(reward_function).strip('][')
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment()
@@ -69,12 +69,12 @@ def train(reward_function) -> None:
         save_interval=sac_inputs["fit_settings"]["n_steps"]
     )
     # Save trained agent
-    env.save(file_name + '.d3')
+    sac.save(file_name + '.d3')
 
 
 def test_trained(reward_function) -> None:
 
-    file_name = './reward_test/' + str(reward_function)
+    file_name = './reward_test/' + str(reward_function).strip('][')
     
     sac = d3rlpy.load_learnable(file_name + ".d3", device=None)
 
@@ -141,7 +141,7 @@ def test_trained(reward_function) -> None:
 def plot_learning(ax, reward_function, color = 'tab:blue', label = None):
     
     # Read data
-    file_name = './reward_test/' + str(reward_function) + ".txt"
+    file_name = './reward_test/' + str(reward_function).strip('][') + ".txt"
     data_array = np.genfromtxt(file_name)
 
     n_steps = sac_inputs["fit_settings"]["n_steps"]
@@ -180,10 +180,10 @@ import signal                         #
                                       #
 def handler(signum, frame):           #
                                       #
-    global env                        #
+    global sac                        #
     global file_name                  #
                                       #
-    env.save(file_name + '.d3')       #
+    sac.save(file_name + '.d3')       #
                                       #
     print("\n\n")                     #
     exit(0)                           #
