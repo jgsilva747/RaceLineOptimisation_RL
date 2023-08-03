@@ -211,7 +211,7 @@ if __name__ == "__main__":
     '''
 
     # To test individual reward function:
-    reward_function = inp.reward_list[1]
+    reward_function = inp.reward_list[0]
     train([reward_function])
 
     '''

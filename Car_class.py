@@ -22,7 +22,7 @@ from Model_utilities import coordinates, MAX_INDEX
 # Create a custom environment that adheres to the OpenAI Gym interface.
 class CarEnvironment(gym.Env):
     def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method,
-                 log_file = 'run_log.txt', reward_funcion=['distance']):
+                 log_file = 'run_log.txt', reward_function=['distance']):
         # TODO: explain function
 
         # Define integration settings
@@ -137,15 +137,18 @@ class CarEnvironment(gym.Env):
         # Auxiliar variables used in reward function
         self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance = 0
+        self.previous_v = 0
+        self.previous_delta = 0
         self.reward = 0
+        self.action = [1,0]
 
         # Define initial state
         state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
         self.state_0 = np.concatenate( [state_branch , self.curvature_list_0 , self.lidar_samples_0 , [self.track_limits_0]] )
         
-        self.reward_function = reward_funcion
+        self.reward_function = reward_function
 
-        assert reward_funcion in inp.reward_list, f"{reward_funcion} not implemented. Please pick one from {inp.reward_list.strip('][')}"
+        assert reward_function in inp.reward_list, f"{reward_function} not implemented. Please pick one from {inp.reward_list.strip('][')}"
 
         self.logging_flag = False
         if inp.log and log_file != 'run_log.txt':
@@ -204,7 +207,10 @@ class CarEnvironment(gym.Env):
         # Reset auxiliar variables used in reward function
         self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance = 0
+        self.previous_v = 0
+        self.previous_delta = 0
         self.reward = 0
+        self.action = [1,0]
 
         return self.state, self.current_position
 
@@ -242,6 +248,10 @@ class CarEnvironment(gym.Env):
         # Update last state entry (containing float representation of bool that indicates if car left the track)
         new_state[-1] = float(self.left_track)
 
+        # Store previous velocity norm
+        self.previous_v = self.state[0]
+        self.previous_delta = self.state[3]
+
         # Update state
         self.state = np.array( new_state )
         # Update position
@@ -258,9 +268,12 @@ class CarEnvironment(gym.Env):
                                                  self.finish_line,
                                                  self.previous_distance_to_last_checkpoint,
                                                  current_distance_to_last_checkpoint,
-                                                 self.state[1:3],
                                                  self.reward_function,
-                                                 self.time)
+                                                 self.state,
+                                                 self.previous_v,
+                                                 self.previous_delta,
+                                                 action,
+                                                 self.action)
 
 
         # Update previous distance to last checkpoint
@@ -269,5 +282,7 @@ class CarEnvironment(gym.Env):
         self.travelled_distance += delta_distance
 
         self.reward += reward
+        
+        self.action = action
 
         return self.state, reward, self.done, False, self.current_position # , self.travelled_distance

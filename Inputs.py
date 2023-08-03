@@ -58,6 +58,8 @@ x4 = 0.35 * 900 # 0.27
 # Normalisation factors for reward function
 delta_distance_normalisation_factor = 1 / 10
 delta_t_normalisation_factor = 1
+velocity_normalisation_factor = 1 / 2
+action_normalisation_factor = 1
 
 # Braking distance
 braking_distance = 150 # m

@@ -737,7 +737,7 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
 
 
 
-def get_reward(left_track, finish_line, previous_distance, current_distance, acc, reward_function, time):
+def get_reward(left_track, finish_line, previous_distance, current_distance, reward_function, state, prev_v, prev_delta, new_action, old_action):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -752,12 +752,20 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, acc
         Distance, given in m, between car and last checkpoint at previous state
     current_distance: float
         Distance, given in m, between car and last checkpoint at current state
-    acc: float array [1 x 2]
-        Longitudinal and Lateral (centripetal) acceleration, given in m/s^2
     reward_function: array of strings
         Defines which reward function(s) to use (for example, time + distance)
-    time: float
-        Time [s] since starting current lap
+    state: float array [1 x 24]
+        State array, containing: # veloxity norm [m/s], t acc [m/s^2], n acc [m/s^2], delta heading [rad], 
+        10 future curvatures [rad], 9 LIDAR measurements [m], track limits [float]
+    prev_v: float
+        Previous velocity norm, given in m/s
+    prev_delta: float
+        Previous heading difference between velocity vector and centerline, given in rad
+    new_action: float array [1 x 2]
+        Current ction array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
+    old_action: float array [1 x 2]
+        Previous action array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
+    
 
     Returns
     -------
@@ -818,19 +826,41 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, acc
     
     # Add forward velocity reward (equivalent to travelled distance)
     if any(reward_function) == 'forward_velocity':
-        ...
+
+        v_norm = state[0]
+        delta = state[3] # angle between velocity direction and centerline
+
+        fwd_v = v_norm * np.cos( delta ) - prev_v * np.cos( prev_delta ) # delta_v in the direction of the centerline [m/s]
+
+        current_reward += fwd_v * inp.velocity_normalisation_factor
     
-    # Add time reward
+    # Add maximum velocity reward (go as fast as possible, brake as quickly as possible)
     if any(reward_function) == 'max_velocity':
-        ...
+        delta_v = ( state[0] - prev_v )
+
+        # Add 0 when braking/coasting, add reward when accelerating
+        current_reward += max( 0 , delta_v) * inp.velocity_normalisation_factor
     
-    # Add time reward
+    # Add action instability penalty
     if any(reward_function) == 'constant_action':
-        ...
+        
+        # NOTE: Only applied to steering. Code for throttle is analogous, but using index [0] instead of [1]
+        # eg: throttle = *_action[0]
+
+        new_cmd = new_action[1]
+        old_cmd = old_action[1]
+
+        delta_cmd = new_cmd - old_cmd # from -2 to 2
+        
+        # Define maximum allowed deviation
+        max_dev = 0.05
+
+        current_reward -= max( 0 , np.absolute(delta_cmd) - max_dev ) * inp.action_normalisation_factor
+
     
-    # Add time reward
+    # Add steering penality to force car to turn as little as possible
     if any(reward_function) == 'min_curvature':
-        ...
+        pass
 
     # Finish line reward
     if finish_line:
