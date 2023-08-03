@@ -814,7 +814,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, acc
     
     # Add time reward/penalty
     if any(reward_function) == 'time':
-        current_reward -= inp.delta_t
+        current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
     
     # Add forward velocity reward (equivalent to travelled distance)
     if any(reward_function) == 'forward_velocity':

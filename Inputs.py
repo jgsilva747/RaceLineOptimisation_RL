@@ -55,8 +55,9 @@ x2 = 7.3e-2 * 900
 x3 = 55 # km/h
 x4 = 0.35 * 900 # 0.27
 
-# Normalisation factor for reward function (travelled distance in right direction)
+# Normalisation factors for reward function
 delta_distance_normalisation_factor = 1 / 10
+delta_t_normalisation_factor = 1
 
 # Braking distance
 braking_distance = 150 # m
