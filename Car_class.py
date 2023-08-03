@@ -142,7 +142,10 @@ class CarEnvironment(gym.Env):
         state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
         self.state_0 = np.concatenate( [state_branch , self.curvature_list_0 , self.lidar_samples_0 , [self.track_limits_0]] )
         
-        if inp.log:
+        self.logging_flag = False
+        if inp.log and log_file != 'run_log.txt':
+            
+            self.logging_flag = True
 
             self.log_file = log_file
             print("Opening " + self.log_file)
@@ -170,7 +173,7 @@ class CarEnvironment(gym.Env):
     def reset(self, seed = inp.seed):
         # TODO: explain function
 
-        if inp.log:
+        if self.logging_flag:
             # Log info from last run
             self.info_logger.info(float(self.reward))
             # logging.info(f"Travelled Distance: {self.travelled_distance}, Position: {self.current_position}")

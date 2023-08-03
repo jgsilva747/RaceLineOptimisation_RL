@@ -23,7 +23,7 @@ reward_scaler = d3rlpy.preprocessing.MultiplyRewardScaler(20) # 10
 
 def train() -> None:
 
-    env_chosen = CarEnvironment(log_file='./tuning/default/sac4_chosen.txt')
+    env_chosen = CarEnvironment(log_file='./tuning/default/sac_chosen.txt')
     env_default = CarEnvironment(log_file='sac_default.txt')
     eval_env = CarEnvironment()
 
@@ -74,7 +74,7 @@ def train() -> None:
         save_interval=sac_inputs["chosen_extra"]["n_steps"]
     )
     # Save trained agent
-    sac_chosen.save('./tuning/default/sac4_chosen.d3')
+    sac_chosen.save('./tuning/default/sac_chosen.d3')
 
     # # start training default agent
     # sac_default.fit_online(
@@ -95,7 +95,7 @@ def train() -> None:
 
 def test_trained() -> None:
     
-    sac_chosen = d3rlpy.load_learnable("tuning/default/sac4_chosen.d3", device=None)
+    sac_chosen = d3rlpy.load_learnable("tuning/default/sac_chosen.d3", device=None)
     sac_default = d3rlpy.load_learnable("tuning/default/sac_default.d3", device=None)
 
     env = CarEnvironment()
@@ -216,9 +216,9 @@ if __name__ == "__main__":
     d3rlpy.seed(inp.seed)
     torch.manual_seed(inp.seed)
 
-    train()
+    # train()
 
-    # test_trained()
+    test_trained()
 
 
 ################

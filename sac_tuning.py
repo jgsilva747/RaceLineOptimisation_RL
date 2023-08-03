@@ -46,7 +46,8 @@ settings_dict = {'batch_size' : [64, 128, 512], # done
                             DefaultEncoderFactory(activation='none'), # done
                             # PixelEncoderFactory(), # error
                             # VectorEncoderFactory(), # error
-                            DenseEncoderFactory()], # done
+                            DenseEncoderFactory(),
+                            DenseEncoderFactory(activation='swish')], # done
                 'q_func' : [QRQFunctionFactory()], # done
                             # IQNQFunctionFactory()], # extremely slow --> cancelled
                 'reward_scaler' : [# MinMaxRewardScaler(), # error
@@ -57,7 +58,6 @@ settings_dict = {'batch_size' : [64, 128, 512], # done
                                 MultiplyRewardScaler(20),
                                 MultiplyRewardScaler(50),
                                 MultiplyRewardScaler(100)]}
-
 
 env_default = CarEnvironment()
 
