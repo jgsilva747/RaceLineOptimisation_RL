@@ -62,7 +62,7 @@ delta_distance_normalisation_factor = 1 / 10
 braking_distance = 150 # m
 
 #########################
-# DDPG Inputs ###########
+# SAC Inputs ############
 #########################
 
 # TODO: Add comments, change values
@@ -84,7 +84,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 seed = 0
 
 # Number of episodes
-n_episodes = int( 1e3 )
+n_episodes = int( 50e3 )
 
 # Exploration fator
 exploration_factor = 0.3 # 1
@@ -113,3 +113,13 @@ sigma = 0.2 # 0.2 from paper, 0.25 from code example
 log = True
 # Plotting (true or false)
 plotting = False
+
+
+
+###########
+reward_list = ['distance',
+                'time',
+                'forward_velocity',
+                'max_velocity',
+                'constant_action',
+                'min_curvature']

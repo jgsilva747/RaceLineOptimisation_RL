@@ -21,7 +21,8 @@ from Model_utilities import coordinates, MAX_INDEX
 
 # Create a custom environment that adheres to the OpenAI Gym interface.
 class CarEnvironment(gym.Env):
-    def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method, log_file = 'run_log.txt'): # .log
+    def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method,
+                 log_file = 'run_log.txt', reward_funcion=['distance']):
         # TODO: explain function
 
         # Define integration settings
@@ -57,7 +58,7 @@ class CarEnvironment(gym.Env):
         self.delta_heaing = self.delta_heading_0
 
         # Initialise list of curvatures
-        self.curvature_list_0 = util.get_future_curvatures(self.current_position, self.circuit_index)
+        self.curvature_list_0, _ = util.get_future_curvatures(self.current_position, self.circuit_index)
         self.curvature_list = self.curvature_list_0
 
         # Initialise LIDAR samples
@@ -142,6 +143,10 @@ class CarEnvironment(gym.Env):
         state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
         self.state_0 = np.concatenate( [state_branch , self.curvature_list_0 , self.lidar_samples_0 , [self.track_limits_0]] )
         
+        self.reward_function = reward_funcion
+
+        assert reward_funcion in inp.reward_list, f"{reward_funcion} not implemented. Please pick one from {inp.reward_list.strip('][')}"
+
         self.logging_flag = False
         if inp.log and log_file != 'run_log.txt':
             
@@ -213,21 +218,21 @@ class CarEnvironment(gym.Env):
         track_direction = track_direction / np.linalg.norm(track_direction)
 
         # Propagate state
-        new_state, new_position, new_mass, self.v_xy = util.propagate_dynamics(self.state,
-                                                                               self.current_position,
-                                                                               self.mass,
-                                                                               self.v_xy,
-                                                                               track_direction,
-                                                                               action,
-                                                                               self.circuit_index,
-                                                                               delta_t = self.delta_t,
-                                                                               integration_method=self.integration_method)
+        new_state, new_position, new_mass, self.v_xy, centerline_pos = util.propagate_dynamics(self.state,
+                                                                                               self.current_position,
+                                                                                               self.mass,
+                                                                                               self.v_xy,
+                                                                                               track_direction,
+                                                                                               action,
+                                                                                               self.circuit_index,
+                                                                                               delta_t = self.delta_t,
+                                                                                               integration_method=self.integration_method)
 
         # Update time
         self.time += self.delta_t
 
         # Update track position index
-        new_circuit_index, current_distance_to_last_checkpoint, _ = util.get_circuit_index(new_position, self.circuit_index)
+        new_circuit_index, current_distance_to_last_checkpoint, _ = util.get_circuit_index(centerline_pos, self.circuit_index)
 
         # Check termination condition
         self.done, self.left_track, self.finish_line = util.assess_termination(new_position,
@@ -253,7 +258,9 @@ class CarEnvironment(gym.Env):
                                                  self.finish_line,
                                                  self.previous_distance_to_last_checkpoint,
                                                  current_distance_to_last_checkpoint,
-                                                 self.state[1:3])
+                                                 self.state[1:3],
+                                                 self.reward_function,
+                                                 self.time)
 
 
         # Update previous distance to last checkpoint

@@ -11,7 +11,7 @@ from Model_utilities import coordinates_in, coordinates_out
 from Car_class import CarEnvironment
 
 
-with open('sac_inputs.yml') as f:
+with open('test_sac_inputs.yml') as f:
     sac_inputs = yaml.load(f, Loader=yaml.FullLoader)
 
 

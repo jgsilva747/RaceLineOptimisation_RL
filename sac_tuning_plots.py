@@ -149,6 +149,10 @@ if __name__ == "__main__":
     ax.plot(default_steps_array, default_data, color='tab:blue', label='default')
     # Plot tuned results
     ax.plot(chosen_steps_array, chosen_data, color='tab:orange', label='tuned')
+
+    values_array = settings_dict.get('reward_scaler')
+    multiplier20 = values_array[2]
+    plot_tuning('reward_scaler', multiplier20, label='Reward Scale x20')
     fig.legend(loc = 'outside lower center', #loc='upper center', bbox_to_anchor=(0.5, -0.15),
             #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25),
             fancybox=True, shadow=True, ncol = len(values_array) + 1 )

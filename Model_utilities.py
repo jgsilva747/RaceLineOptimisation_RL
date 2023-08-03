@@ -276,7 +276,7 @@ def get_circuit_index(position,circuit_index):
     Parameters
     ----------
     position: float array [1 x 2]
-        Position array, containing: x and y position [m], respectively
+        Position array, containing: x and y position of closest centerline point [m], respectively
     curcuit_index: int
         index of the last propagated position withing the coordinate array
     
@@ -448,7 +448,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
 
         future_curvatures.append( relative_angle ) # [sample] = relative_angle # negative angle means left, positive angle means right
 
-    return future_curvatures
+    return future_curvatures, starting_point
 
 
 
@@ -721,7 +721,7 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
         delta_heading += 2 * np.pi
     
     # Get future curvatures list
-    curvature_list = get_future_curvatures(new_position, index)
+    curvature_list, centerline_pos = get_future_curvatures(new_position, index)
 
     # Get LIDAR samples
     lidar_samples = get_lidar_samples(new_position, index)
@@ -733,11 +733,11 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
                                                                                                # after running assess_termination()
                                                                                                # in the step function
     # Return updated state, position and mass
-    return state, new_position, mass, v
+    return state, new_position, mass, v, centerline_pos
 
 
 
-def get_reward(left_track, finish_line, previous_distance, current_distance, acc):
+def get_reward(left_track, finish_line, previous_distance, current_distance, acc, reward_function, time):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -754,6 +754,10 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, acc
         Distance, given in m, between car and last checkpoint at current state
     acc: float array [1 x 2]
         Longitudinal and Lateral (centripetal) acceleration, given in m/s^2
+    reward_function: array of strings
+        Defines which reward function(s) to use (for example, time + distance)
+    time: float
+        Time [s] since starting current lap
 
     Returns
     -------
@@ -786,16 +790,57 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, acc
     if finish_line:
         current_reward += 1e3
         '''
+    '''
+    [0] --> 'distance'
+    [1] --> 'time'
+    [2] --> 'forward_velocity'
+    [3] --> 'max_velocity'
+    [4] --> 'constant_action'
+    [5] --> 'min_curvature']
+    '''
+    current_reward = 0
 
-    delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
+    # Add distance reward
+    if any(reward_function) == 'distance':
+        delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
 
-    # Reset distance when new index is reached
-    # otherwise delta would cancel out everyting that
-    # was achieved before (e.g.: delta = - 400 m)
-    if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
-        delta_distance_travelled = 0
+        # Reset distance when new index is reached
+        # otherwise delta would cancel out everyting that
+        # was achieved before (e.g.: delta = - 400 m)
+        if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
+            delta_distance_travelled = 0
 
-    current_reward = delta_distance_travelled * inp.delta_distance_normalisation_factor # - inp.delta_t
+        current_reward += delta_distance_travelled * inp.delta_distance_normalisation_factor # - inp.delta_t
+    
+    # Add time reward/penalty
+    if any(reward_function) == 'time':
+        current_reward -= inp.delta_t
+    
+    # Add forward velocity reward (equivalent to travelled distance)
+    if any(reward_function) == 'forward_velocity':
+        ...
+    
+    # Add time reward
+    if any(reward_function) == 'max_velocity':
+        ...
+    
+    # Add time reward
+    if any(reward_function) == 'constant_action':
+        ...
+    
+    # Add time reward
+    if any(reward_function) == 'min_curvature':
+        ...
+
+    # Finish line reward
+    if finish_line:
+        current_reward += int(1e3)
+
+    # Collision penalty
+    if left_track:
+        current_reward -= int(1e3)
+    
+    # TODO: Add centripetal acceleration penalty (car drifts if there is not enough traction)
 
     return current_reward, delta_distance_travelled
 
