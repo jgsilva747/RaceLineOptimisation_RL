@@ -81,7 +81,8 @@ directory = './'
 hidden1=20 # 20
 hidden2=64 # 64
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = torch.cuda.is_available()
 
 # Seed
 seed = 0

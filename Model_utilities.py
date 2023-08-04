@@ -860,7 +860,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
     
     # Add steering penality to force car to turn as little as possible
     if 'min_curvature' in reward_function:
-        pass # TODO
+        steering = np.absolute(new_action[1]) # from 0 to 1
+        current_reward -= steering * inp.action_normalisation_factor
 
     # Finish line reward
     if finish_line:
@@ -868,8 +869,10 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
 
     # Collision penalty
     if left_track:
-        current_reward -= int(1e3)
-    
+        current_reward -= state[0] # int(1e3)
+        # NOTE: By penalising collisions as a function of the velocity norm,
+        #       the agent learns that collisions can be avoided by going slower
+
     # TODO: Add centripetal acceleration penalty (car drifts if there is not enough traction)
 
     return current_reward, delta_distance_travelled

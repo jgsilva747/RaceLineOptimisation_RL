@@ -133,9 +133,7 @@ def test_trained(reward_function) -> None:
         fig.tight_layout()
         fig.subplots_adjust(right=1)
 
-    print(f"Lap time: {lap_time} s")
-
-    plt.show()
+    print(f"{str(reward_function).strip('][')} --> Lap time: {lap_time} s")
 
 
 def plot_learning(ax, reward_function, color = 'tab:blue', label = None):
@@ -210,12 +208,14 @@ if __name__ == "__main__":
     [5] --> 'min_curvature'
     '''
 
+    '''
     # To test individual reward function:
     reward_function = inp.reward_list[0]
     train([reward_function])
+    '''
 
     '''
-    # To test every reward function:
+    # To test every reward function individually:
     for reward_function in inp.reward_list:
         train([reward_function])
     '''
@@ -223,12 +223,49 @@ if __name__ == "__main__":
     '''
     # To test multiple reward functions simultaneously:
     reward_function = [
+                        inp.reward_list[1],
                         inp.reward_list[3],
-                        inp.reward_list[5]
+                        inp.reward_list[4]
                       ]
-    train(reward_function)
     '''
+    reward_function = [inp.reward_list[1],
+                       inp.reward_list[2],
+                       inp.reward_list[4]]
+    # train(reward_function)
 
-    # test_trained()
+
+    trained_list = [[inp.reward_list[0]],
+
+                    # [inp.reward_list[1]],
+
+                    [inp.reward_list[2]],
+
+                    [inp.reward_list[2],
+                     inp.reward_list[4]],
+
+                    [inp.reward_list[3],
+                     inp.reward_list[4]],
+
+                    [inp.reward_list[3],
+                     inp.reward_list[5]],
+
+                    [inp.reward_list[0],
+                    inp.reward_list[3],
+                    inp.reward_list[4]],
+
+                    [inp.reward_list[1],
+                     inp.reward_list[2],
+                     inp.reward_list[4]],
+
+                    [inp.reward_list[1],
+                     inp.reward_list[3],
+                     inp.reward_list[4]]
+                   ]
+
+
+    for reward_function in trained_list:
+        test_trained(reward_function)
+    
+    plt.show()
 
     # plot_learning()
