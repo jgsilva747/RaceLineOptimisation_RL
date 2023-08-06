@@ -2,7 +2,6 @@ import numpy as np
 import yaml
 import torch
 import d3rlpy
-import shap
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams.update({'font.size':12})
@@ -84,6 +83,8 @@ def train(reward_function) -> None:
 
 def test_trained(reward_function) -> None:
 
+    state_lst = []
+
     file_name = './reward_test/' + str(reward_function).strip('][')
     
     sac = d3rlpy.load_learnable(file_name + ".d3", device=None)
@@ -104,6 +105,8 @@ def test_trained(reward_function) -> None:
     done = False
     total_reward = 0# Plot initial position
     lap_time = 0
+
+    state_lst.append(state)
 
     if inp.plot_episode:
         plot_pos.append(current_position)
@@ -127,6 +130,8 @@ def test_trained(reward_function) -> None:
         # Update time
         lap_time += inp.delta_t
 
+        state_lst.append(state)
+
         if inp.plot_episode:
             plot_pos.append(current_position)
             plot_v.append(3.6 * np.linalg.norm(state[:2]))
@@ -143,7 +148,8 @@ def test_trained(reward_function) -> None:
         fig.tight_layout()
         fig.subplots_adjust(right=1)
 
-
+    state_lst = np.array(state_lst)
+    # np.save('state_example.npy', state_lst)
     print(f"{str(reward_function).strip('][')} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
 
 
@@ -307,11 +313,10 @@ if __name__ == "__main__":
 
 
     # To test multiple reward functions simultaneously:
-    # reward_function = [
-    #                     inp.reward_list[0],
-    #                     inp.reward_list[4],
-    #                     inp.reward_list[6]
-    #                   ]
+    reward_function = [
+                        inp.reward_list[4],
+                        inp.reward_list[6]
+                      ]
 
 
     # train(reward_function)
@@ -355,35 +360,7 @@ if __name__ == "__main__":
                      inp.reward_list[4]]
                    ]
 
-    '''
-    ################
-    # SHAP STUFF ###
-    ################
-    sac = d3rlpy.load_learnable("reward_test/'constant_action', 'max_acc'.d3", device=None)
-
-    env = CarEnvironment()
-
-
-    data_set, _ = env.reset()
-
-    actor_model = sac._impl.policy
-
-    data_set = np.array([data_set])
-
-    # Wrap the actor_model with a SHAP explainer
-    explainer = shap.Explainer(actor_model, data_set)# np.zeros((1, len(data_set))))
-
-
-    shap_values = explainer.shap_values(torch.from_numpy(data_set))
-
-
-    actor_model = sac._impl.policy
-    shap.initjs()
-
-    # Calculate SHAP values
-    explainer = shap.TreeExplainer(sac)
-    '''
-
+    # TODO: open terminal and run stuff that failed yesterday (max acc with min curvature? + distance?)
 
 
     # for reward_function in trained_list:
