@@ -2,15 +2,22 @@ import numpy as np
 import yaml
 import torch
 import d3rlpy
+import shap
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams.update({'font.size':12})
 
 import Inputs as inp
-from Model_utilities import coordinates_in, coordinates_out
+from Model_utilities import coordinates_in, coordinates_out, coordinates
 from Car_class import CarEnvironment
 
-with open('sac_inputs.yml') as f:
+
+if inp.jupyter_flag:
+    jupyter_dir = '/content/drive/My Drive/RL_racing_line/'
+else:
+    jupyter_dir = ''
+
+with open(jupyter_dir + 'sac_inputs.yml') as f:
     sac_inputs = yaml.load(f, Loader=yaml.FullLoader)
 
 
@@ -31,7 +38,10 @@ def train(reward_function) -> None:
     global sac
     global file_name
 
-    file_name = './reward_test/' + str(reward_function).strip('][')
+    if inp.jupyter_flag:
+        file_name = jupyter_dir + str(reward_function).strip('][')
+    else:
+        file_name = './reward_test/' + str(reward_function).strip('][') # + '_' + str(inp.action_normalisation_factor)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment()
@@ -106,7 +116,7 @@ def test_trained(reward_function) -> None:
         action = sac.predict(state_with_batch)[0]
 
         # Execute action in the environment
-        next_state, reward, done, _, current_position = env.step(action)
+        next_state, reward, done, lap_completed, current_position = env.step(action)
 
         # Accumulate the reward
         total_reward += reward
@@ -133,7 +143,77 @@ def test_trained(reward_function) -> None:
         fig.tight_layout()
         fig.subplots_adjust(right=1)
 
-    print(f"{str(reward_function).strip('][')} --> Lap time: {lap_time} s")
+
+    print(f"{str(reward_function).strip('][')} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
+
+
+
+def tune_weight(reward_func):
+    file_name = './reward_test/' + str(reward_func).strip('][')
+
+    for i in np.arange(1,7):
+
+        sac = d3rlpy.load_learnable(file_name + '_' + str(i) + ".d3", device=None)
+
+        env = CarEnvironment()
+
+        if inp.plot_episode:
+            fig, ax = plt.subplots(figsize=( 8 , 6))
+            ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
+            ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
+
+            plot_pos = []
+            plot_v = []
+
+
+        # Initialize episode
+        state, current_position = env.reset()
+        done = False
+        total_reward = 0# Plot initial position
+        lap_time = 0
+
+        if inp.plot_episode:
+            plot_pos.append(current_position)
+            plot_v.append(3.6 * np.linalg.norm(state[:2]))
+            # ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma")
+
+        while not done:
+            # Select action based on current state
+            state_with_batch = np.expand_dims(state, axis=0)
+            action = sac.predict(state_with_batch)[0]
+
+            # Execute action in the environment
+            next_state, reward, done, lap_completed, current_position = env.step(action)
+
+            # Accumulate the reward
+            total_reward += reward
+
+            # Move to the next state
+            state = next_state
+
+            # Update time
+            lap_time += inp.delta_t
+
+            if inp.plot_episode:
+                plot_pos.append(current_position)
+                plot_v.append(3.6 * np.linalg.norm(state[:2]))
+                # scatter.append(ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma"))
+
+        # Show plot
+        if inp.plot_episode:
+            plot_pos = np.array(plot_pos)
+            plot_v = np.array(plot_v)
+            points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c= plot_v, s=10, cmap="plasma")
+            cbar = fig.colorbar(points)
+            cbar.set_label('Velocity [km/h]')
+            # Apply tight layout to figure
+            fig.tight_layout()
+            fig.subplots_adjust(right=1)
+
+
+        print(f"{str(reward_func).strip('][')}_{str(i)} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
+
+
 
 
 def plot_learning(ax, reward_function, color = 'tab:blue', label = None):
@@ -181,7 +261,10 @@ def handler(signum, frame):           #
     global sac                        #
     global file_name                  #
                                       #
-    sac.save(file_name + '.d3')       #
+    try:                              #
+        sac.save(file_name + '.d3')   #
+    except:                           #
+        pass                          #
                                       #
     print("\n\n")                     #
     exit(0)                           #
@@ -206,6 +289,8 @@ if __name__ == "__main__":
     [3] --> 'max_velocity'
     [4] --> 'constant_action'
     [5] --> 'min_curvature'
+    [6] --> 'max_acc'
+    [7] --> 'straight_line'
     '''
 
     '''
@@ -220,17 +305,15 @@ if __name__ == "__main__":
         train([reward_function])
     '''
 
-    '''
+
     # To test multiple reward functions simultaneously:
-    reward_function = [
-                        inp.reward_list[1],
-                        inp.reward_list[3],
-                        inp.reward_list[4]
-                      ]
-    '''
-    reward_function = [inp.reward_list[1],
-                       inp.reward_list[2],
-                       inp.reward_list[4]]
+    # reward_function = [
+    #                     inp.reward_list[0],
+    #                     inp.reward_list[4],
+    #                     inp.reward_list[6]
+    #                   ]
+
+
     # train(reward_function)
 
 
@@ -248,10 +331,20 @@ if __name__ == "__main__":
 
                     [inp.reward_list[3],
                      inp.reward_list[5]],
+                    
+                    [inp.reward_list[4],
+                    inp.reward_list[6]],
+
+                    # [inp.reward_list[5],
+                    # inp.reward_list[6]],
 
                     [inp.reward_list[0],
                     inp.reward_list[3],
                     inp.reward_list[4]],
+
+                    [inp.reward_list[0],
+                    inp.reward_list[4],
+                    inp.reward_list[6]],
 
                     [inp.reward_list[1],
                      inp.reward_list[2],
@@ -262,10 +355,44 @@ if __name__ == "__main__":
                      inp.reward_list[4]]
                    ]
 
+    '''
+    ################
+    # SHAP STUFF ###
+    ################
+    sac = d3rlpy.load_learnable("reward_test/'constant_action', 'max_acc'.d3", device=None)
 
-    for reward_function in trained_list:
-        test_trained(reward_function)
+    env = CarEnvironment()
+
+
+    data_set, _ = env.reset()
+
+    actor_model = sac._impl.policy
+
+    data_set = np.array([data_set])
+
+    # Wrap the actor_model with a SHAP explainer
+    explainer = shap.Explainer(actor_model, data_set)# np.zeros((1, len(data_set))))
+
+
+    shap_values = explainer.shap_values(torch.from_numpy(data_set))
+
+
+    actor_model = sac._impl.policy
+    shap.initjs()
+
+    # Calculate SHAP values
+    explainer = shap.TreeExplainer(sac)
+    '''
+
+
+
+    # for reward_function in trained_list:
+    #     test_trained(reward_function)
     
-    plt.show()
+
+    # tune_weight([inp.reward_list[3],
+    #             inp.reward_list[4]])
+
+    # plt.show()
 
     # plot_learning()

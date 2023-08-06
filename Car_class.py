@@ -286,4 +286,4 @@ class CarEnvironment(gym.Env):
         
         self.action = action
 
-        return self.state, reward, self.done, False, self.current_position # , self.travelled_distance
+        return self.state, reward, self.done, self.finish_line, self.current_position # , self.travelled_distance

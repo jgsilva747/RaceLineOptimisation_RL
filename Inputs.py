@@ -1,7 +1,7 @@
 import torch
 
 # Choose circuit here
-chosen_circuit = "test curve"
+chosen_circuit = "silverstone"
 
 # Choose simulation time step
 delta_t = 0.015 # s
@@ -59,13 +59,13 @@ x4 = 0.35 * 900 # 0.27
 delta_distance_normalisation_factor = 1 / 10
 delta_t_normalisation_factor = 1
 velocity_normalisation_factor = 1 / 2
-action_normalisation_factor = 1
+action_normalisation_factor = 5
 
 # Braking distance
 braking_distance = 150 # m
 
 #########################
-# SAC Inputs ############
+# DDPG Inputs ############
 #########################
 
 # TODO: Add comments, change values
@@ -126,4 +126,12 @@ reward_list = ['distance',
                 'forward_velocity',
                 'max_velocity',
                 'constant_action',
-                'min_curvature']
+                'min_curvature',
+                'max_acc',
+                'straight_line']
+
+
+################
+jupyter_flag = False
+if jupyter_flag:
+    log = False

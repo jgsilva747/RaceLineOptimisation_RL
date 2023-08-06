@@ -819,7 +819,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
     if 'distance' in reward_function:
 
         current_reward += delta_distance_travelled * inp.delta_distance_normalisation_factor # - inp.delta_t
-    
+
     # Add time reward/penalty
     if 'time' in reward_function:
         current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
@@ -833,14 +833,14 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         fwd_v = v_norm * np.cos( delta ) - prev_v * np.cos( prev_delta ) # delta_v in the direction of the centerline [m/s]
 
         current_reward += fwd_v * inp.velocity_normalisation_factor
-    
+
     # Add maximum velocity reward (go as fast as possible, brake as quickly as possible)
     if 'max_velocity' in reward_function:
         delta_v = ( state[0] - prev_v )
 
         # Add 0 when braking/coasting, add reward when accelerating
         current_reward += max( 0 , delta_v) * inp.velocity_normalisation_factor
-    
+
     # Add action instability penalty
     if 'constant_action' in reward_function:
         
@@ -850,28 +850,42 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         new_cmd = new_action[1]
         old_cmd = old_action[1]
 
-        delta_cmd = new_cmd - old_cmd # from -2 to 2
-        
-        # Define maximum allowed deviation
-        max_dev = 0.05
+        delta_cmd = np.absolute( new_cmd - old_cmd ) # from 0 to 2
 
-        current_reward -= max( 0 , np.absolute(delta_cmd) - max_dev ) * inp.action_normalisation_factor
+        current_reward -= delta_cmd * inp.action_normalisation_factor
 
-    
+
     # Add steering penality to force car to turn as little as possible
     if 'min_curvature' in reward_function:
         steering = np.absolute(new_action[1]) # from 0 to 1
         current_reward -= steering * inp.action_normalisation_factor
 
+    if 'max_acc' in reward_function:
+        throttle = new_action[0] # from -1 to 1
+
+        if throttle > 0.99: # incentivise max throttle
+            current_reward += inp.action_normalisation_factor
+        else: # break as quickly as possible
+            current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
+
+    if 'straight_line' in reward_function:
+        wheel = new_action[1] # from -1 to 1
+
+        if np.absolute(wheel) < 0.01: # incentivise driving in a straight line
+            current_reward += inp.action_normalisation_factor
+        else: # complete curve as quickly as possible --> not smooth! How can I make it smooth?
+            current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
+
+
     # Finish line reward
     if finish_line:
-        current_reward += int(1e3)
+        current_reward += 0 # 13e
 
     # Collision penalty
     if left_track:
-        current_reward -= state[0] # int(1e3)
+        current_reward -= 1e3
         # NOTE: By penalising collisions as a function of the velocity norm,
-        #       the agent learns that collisions can be avoided by going slower
+        #       the agent learns that collisions can be avoided by going slower # NOTE: FAILED!! Not a good idea
 
     # TODO: Add centripetal acceleration penalty (car drifts if there is not enough traction)
 
