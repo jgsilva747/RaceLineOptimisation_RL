@@ -13,8 +13,8 @@ from Model_utilities import coordinates_in, coordinates_out, coordinates
 from Car_class import CarEnvironment
 
 
-idx_min = 100
-idx_max = 150
+idx_min = 0
+idx_max = 750
 
 
 

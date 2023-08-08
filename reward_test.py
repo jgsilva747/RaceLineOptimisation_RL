@@ -20,7 +20,8 @@ with open(jupyter_dir + 'sac_inputs.yml') as f:
     sac_inputs = yaml.load(f, Loader=yaml.FullLoader)
 
 
-encoder_factory = d3rlpy.models.encoders.DenseEncoderFactory()
+# encoder_factory = d3rlpy.models.encoders.DenseEncoderFactory() # Too slow
+encoder_factory = d3rlpy.models.encoders.DefaultEncoderFactory(activation='swish')
 reward_scaler = d3rlpy.preprocessing.MultiplyRewardScaler(20)
 
 
@@ -38,19 +39,22 @@ def train(reward_function) -> None:
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][')
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_' + str(inp.wheel_normalisation_factor)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') # + '_' + str(inp.action_normalisation_factor)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + str(inp.wheel_normalisation_factor)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
-    eval_env = CarEnvironment()
+    eval_env = CarEnvironment(reward_function=reward_function)
 
     # setup algorithm
     sac = d3rlpy.algos.SACConfig(**sac_inputs["algo_settings"],
                                 actor_encoder_factory = encoder_factory,
                                 critic_encoder_factory = encoder_factory,
-                                 reward_scaler = reward_scaler
+                                reward_scaler = reward_scaler
                                 ).create(device=inp.device)
+    
+    # default sac
+    # sac = d3rlpy.algos.SACConfig(reward_scaler = reward_scaler).create(device=inp.device)
 
     # multi-step transition sampling
     transition_picker = d3rlpy.dataset.MultiStepTransitionPicker(
@@ -98,6 +102,7 @@ def test_trained(reward_function) -> None:
 
         plot_pos = []
         plot_v = []
+        plot_throttle = []
 
 
     # Initialize episode
@@ -110,6 +115,7 @@ def test_trained(reward_function) -> None:
 
     if inp.plot_episode:
         plot_pos.append(current_position)
+        plot_throttle.append(1)
         plot_v.append(3.6 * np.linalg.norm(state[:2]))
         # ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma")
 
@@ -134,6 +140,7 @@ def test_trained(reward_function) -> None:
 
         if inp.plot_episode:
             plot_pos.append(current_position)
+            plot_throttle.append(action[0])
             plot_v.append(3.6 * np.linalg.norm(state[:2]))
             # scatter.append(ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma"))
 
@@ -141,9 +148,13 @@ def test_trained(reward_function) -> None:
     if inp.plot_episode:
         plot_pos = np.array(plot_pos)
         plot_v = np.array(plot_v)
-        points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c= plot_v, s=10, cmap="plasma")
+        plot_throttle = np.array(plot_throttle)
+        # points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c = plot_v, s=10, cmap="plasma")
+        points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c = 100 * plot_throttle, s=10, cmap="RdYlGn")
         cbar = fig.colorbar(points)
-        cbar.set_label('Velocity [km/h]')
+        # cbar.set_label('Velocity [km/h]')
+        cbar.set_label('Throttle [%]')
+        ax.set_title(str(reward_function).strip(']['))
         # Apply tight layout to figure
         fig.tight_layout()
         fig.subplots_adjust(right=1)
@@ -154,12 +165,12 @@ def test_trained(reward_function) -> None:
 
 
 
-def tune_weight(reward_func):
+def tune_weight(reward_func, weight_array, penalty = False):
     file_name = './reward_test/' + str(reward_func).strip('][')
 
-    for i in np.arange(1,7):
+    for weight in weight_array:
 
-        sac = d3rlpy.load_learnable(file_name + '_' + str(i) + ".d3", device=None)
+        sac = d3rlpy.load_learnable(file_name + ('_penalty' if penalty else '') + '_' + str(weight) + ".d3", device=None)
 
         env = CarEnvironment()
 
@@ -170,6 +181,7 @@ def tune_weight(reward_func):
 
             plot_pos = []
             plot_v = []
+            plot_throttle = []
 
 
         # Initialize episode
@@ -180,6 +192,7 @@ def tune_weight(reward_func):
 
         if inp.plot_episode:
             plot_pos.append(current_position)
+            plot_throttle.append(1)
             plot_v.append(3.6 * np.linalg.norm(state[:2]))
             # ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma")
 
@@ -202,6 +215,7 @@ def tune_weight(reward_func):
 
             if inp.plot_episode:
                 plot_pos.append(current_position)
+                plot_throttle.append(action[0])
                 plot_v.append(3.6 * np.linalg.norm(state[:2]))
                 # scatter.append(ax.scatter(current_position[0], current_position[1], marker='.', linewidths=0.01, c=( 3.6 * np.linalg.norm(state[:2]) ), s=10, cmap="plasma"))
 
@@ -209,15 +223,19 @@ def tune_weight(reward_func):
         if inp.plot_episode:
             plot_pos = np.array(plot_pos)
             plot_v = np.array(plot_v)
-            points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c= plot_v, s=10, cmap="plasma")
+            plot_throttle = np.array(plot_throttle)
+            # points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c = plot_v, s=10, cmap="plasma")
+            points = ax.scatter(plot_pos[:,0], plot_pos[:,1], c = 100 * plot_throttle, s=10, cmap="RdYlGn")
             cbar = fig.colorbar(points)
-            cbar.set_label('Velocity [km/h]')
+            # cbar.set_label('Velocity [km/h]')
+            cbar.set_label('Throttle [%]')
+            ax.set_title(str(reward_func).strip('][') + '_' + str(weight))
             # Apply tight layout to figure
             fig.tight_layout()
             fig.subplots_adjust(right=1)
 
 
-        print(f"{str(reward_func).strip('][')}_{str(i)} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
+        print(f"{str(reward_func).strip('][')}_{str(weight)} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
 
 
 
@@ -255,7 +273,7 @@ def plot_learning(ax, reward_function, color = 'tab:blue', label = None):
     ax.plot(steps_array, data_array, color=color, label=label)
 
 
-
+'''
 #######################################
 # Save agent when Ctrl+C is pressed   #
 #######################################
@@ -278,7 +296,7 @@ def handler(signum, frame):           #
 signal.signal(signal.SIGINT, handler) #
                                       #
 #######################################
-
+'''
 
 if __name__ == "__main__":
 
@@ -314,61 +332,37 @@ if __name__ == "__main__":
 
     # To test multiple reward functions simultaneously:
     reward_function = [
-                        inp.reward_list[4],
-                        inp.reward_list[6]
+                        inp.reward_list[6],
+                        inp.reward_list[7]
                       ]
 
 
-    # train(reward_function)
+    train(reward_function)
 
 
-    trained_list = [[inp.reward_list[0]],
-
-                    # [inp.reward_list[1]],
-
-                    [inp.reward_list[2]],
+    trained_list = [[inp.reward_list[2],
+                     inp.reward_list[3]],
 
                     [inp.reward_list[2],
-                     inp.reward_list[4]],
+                     inp.reward_list[6]],
 
-                    [inp.reward_list[3],
-                     inp.reward_list[4]],
-
-                    [inp.reward_list[3],
-                     inp.reward_list[5]],
-                    
-                    [inp.reward_list[4],
-                    inp.reward_list[6]],
-
-                    # [inp.reward_list[5],
-                    # inp.reward_list[6]],
-
-                    [inp.reward_list[0],
-                    inp.reward_list[3],
-                    inp.reward_list[4]],
-
-                    [inp.reward_list[0],
-                    inp.reward_list[4],
-                    inp.reward_list[6]],
-
-                    [inp.reward_list[1],
-                     inp.reward_list[2],
-                     inp.reward_list[4]],
-
-                    [inp.reward_list[1],
+                    [inp.reward_list[2],
                      inp.reward_list[3],
-                     inp.reward_list[4]]
-                   ]
+                     inp.reward_list[4]],
 
-    # TODO: open terminal and run stuff that failed yesterday (max acc with min curvature? + distance?)
-
+                    [inp.reward_list[2],
+                     inp.reward_list[4],
+                     inp.reward_list[6]]
+    ]
 
     # for reward_function in trained_list:
     #     test_trained(reward_function)
-    
 
-    # tune_weight([inp.reward_list[3],
-    #             inp.reward_list[4]])
+
+    # tune_weight([inp.reward_list[4],
+    #              inp.reward_list[6]],
+    #             weight_array = [2.5, 5, 7.5],
+    #             penalty = False)
 
     # plt.show()
 

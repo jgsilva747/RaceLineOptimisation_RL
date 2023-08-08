@@ -775,37 +775,6 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         travelled distance between time steps
     '''
 
-    '''
-    # Initialise current reward, penalising agent by 1 point for each second that passes
-    current_reward = - inp.delta_t
-    
-    # Give incentive to move forward
-    delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
-
-    # Reset distance when new index is reached
-    # otherwise delta would cancel out everyting that
-    # was achieved before (e.g.: delta = - 400 m)
-    if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
-        delta_distance_travelled = 0
-
-    current_reward += delta_distance_travelled * inp.delta_distance_normalisation_factor
-
-    # Penalise if car left track.
-    if left_track:
-        current_reward += -1e3
-    
-    # Give big bonus when car completes lap
-    if finish_line:
-        current_reward += 1e3
-        '''
-    '''
-    [0] --> 'distance'
-    [1] --> 'time'
-    [2] --> 'forward_velocity'
-    [3] --> 'max_velocity'
-    [4] --> 'constant_action'
-    [5] --> 'min_curvature']
-    '''
     current_reward = 0
     delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
 
@@ -852,29 +821,29 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
 
         delta_cmd = np.absolute( new_cmd - old_cmd ) # from 0 to 2
 
-        current_reward -= delta_cmd * inp.action_normalisation_factor
+        current_reward -= delta_cmd * inp.wheel_normalisation_factor
 
 
     # Add steering penality to force car to turn as little as possible
     if 'min_curvature' in reward_function:
         steering = np.absolute(new_action[1]) # from 0 to 1
-        current_reward -= steering * inp.action_normalisation_factor
+        current_reward -= steering * inp.wheel_normalisation_factor
 
     if 'max_acc' in reward_function:
         throttle = new_action[0] # from -1 to 1
 
         if throttle > 0.99: # incentivise max throttle
-            current_reward += inp.action_normalisation_factor
+            current_reward += inp.throttle_normalisation_factor
         else: # break as quickly as possible
-            current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
+            current_reward -= inp.delta_t_normalisation_factor
 
     if 'straight_line' in reward_function:
         wheel = new_action[1] # from -1 to 1
 
-        if np.absolute(wheel) < 0.01: # incentivise driving in a straight line
-            current_reward += inp.action_normalisation_factor
+        if np.absolute(wheel) < 1e-2: # incentivise driving in a straight line
+            current_reward += inp.wheel_normalisation_factor
         else: # complete curve as quickly as possible --> not smooth! How can I make it smooth?
-            current_reward -= inp.delta_t * inp.delta_t_normalisation_factor
+            current_reward -= inp.delta_t_normalisation_factor
 
 
     # Finish line reward

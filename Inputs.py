@@ -4,7 +4,7 @@ import torch
 chosen_circuit = "test curve"
 
 # Choose simulation time step
-delta_t = 0.015 # s
+delta_t = 0.01 # 0.015 # s
 
 # Integration method
 integration_method = 'euler'
@@ -53,13 +53,14 @@ circuit_factor = 1e5
 x1 = 5 * 900
 x2 = 7.3e-2 * 900
 x3 = 55 # km/h
-x4 = 0.35 * 900 # 0.27
+x4 = 0.3 * 900 # 0.27
 
 # Normalisation factors for reward function
 delta_distance_normalisation_factor = 1 / 10
 delta_t_normalisation_factor = 1
 velocity_normalisation_factor = 1 / 2
-action_normalisation_factor = 5
+wheel_normalisation_factor = 7.5
+throttle_normalisation_factor = 5
 
 # Braking distance
 braking_distance = 150 # m
