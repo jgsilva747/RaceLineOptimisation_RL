@@ -57,7 +57,7 @@ x4 = 0.3 * 900 # 0.27
 
 # Normalisation factors for reward function
 delta_distance_normalisation_factor = 1 / 10
-delta_t_normalisation_factor = 1
+delta_t_normalisation_factor = 1.5
 velocity_normalisation_factor = 1 / 2
 wheel_normalisation_factor = 7.5
 throttle_normalisation_factor = 5
@@ -83,7 +83,7 @@ hidden1=20 # 20
 hidden2=64 # 64
 
 # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = torch.cuda.is_available()
+device = torch.cuda.is_available() # True if cuda is available, else false
 
 # Seed
 seed = 0

@@ -39,9 +39,9 @@ def train(reward_function) -> None:
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][') + '_' + str(inp.wheel_normalisation_factor)
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_long_run' # + '_penalty_' + str(inp.delta_t_normalisation_factor)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + str(inp.wheel_normalisation_factor)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_long_run' # + '_penalty_' + str(inp.delta_t_normalisation_factor)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
@@ -85,11 +85,11 @@ def train(reward_function) -> None:
     sac.save(file_name + '.d3')
 
 
-def test_trained(reward_function) -> None:
+def test_trained(reward_function, extra = '') -> None:
 
     state_lst = []
 
-    file_name = './reward_test/' + str(reward_function).strip('][')
+    file_name = './reward_test/' + str(reward_function).strip('][') + extra
     
     sac = d3rlpy.load_learnable(file_name + ".d3", device=None)
 
@@ -108,7 +108,7 @@ def test_trained(reward_function) -> None:
     # Initialize episode
     state, current_position = env.reset()
     done = False
-    total_reward = 0# Plot initial position
+    total_reward = 0
     lap_time = 0
 
     state_lst.append(state)
@@ -273,6 +273,60 @@ def plot_learning(ax, reward_function, color = 'tab:blue', label = None):
     ax.plot(steps_array, data_array, color=color, label=label)
 
 
+def fine_tune(reward_function,
+              extra = '') -> None:
+
+    global sac
+    global file_name
+
+    if inp.jupyter_flag:
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_fine_tuning' # + '_penalty_' + str(inp.delta_t_normalisation_factor)
+    else:
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_fine_tuning' + '_penalty_' + str(inp.delta_t_normalisation_factor)
+
+    env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
+    eval_env = CarEnvironment(reward_function=reward_function)
+
+    read_file = './reward_test/' + str(reward_function).strip('][') + extra
+
+    print(f'Fine Tuning: opening {read_file}')
+
+    # setup algorithm
+    sac = d3rlpy.load_learnable(read_file + ".d3", device=None)
+    
+    # default sac
+    # sac = d3rlpy.algos.SACConfig(reward_scaler = reward_scaler).create(device=inp.device)
+
+    # multi-step transition sampling
+    transition_picker = d3rlpy.dataset.MultiStepTransitionPicker(
+        n_steps=sac_inputs["fit_settings"]["n_steps"],
+        gamma=sac_inputs["algo_settings"]["gamma"],
+    )
+
+    # replay buffer for experience replay
+    buffer = d3rlpy.dataset.create_fifo_replay_buffer(
+        limit=sac_inputs["fit_settings"]["limit"],
+        env=env,
+        transition_picker=transition_picker,
+    )
+
+    # start training
+    sac.fit_online(
+        env,
+        buffer,
+        eval_env=eval_env,
+        n_steps=sac_inputs["fit_settings"]["n_steps"],
+        n_steps_per_epoch=sac_inputs["fit_settings"]["n_steps_per_epoch"],
+        update_interval=sac_inputs["fit_settings"]["update_interval"],
+        update_start_step=sac_inputs["fit_settings"]["update_start_step"],
+        random_steps=sac_inputs["fit_settings"]["random_steps"],
+        save_interval=sac_inputs["fit_settings"]["n_steps"]
+    )
+    # Save trained agent
+    sac.save(file_name + '.d3')
+
+
+
 '''
 #######################################
 # Save agent when Ctrl+C is pressed   #
@@ -337,7 +391,7 @@ if __name__ == "__main__":
                       ]
 
 
-    train(reward_function)
+    # train(reward_function)
 
 
     trained_list = [[inp.reward_list[2],
@@ -364,6 +418,20 @@ if __name__ == "__main__":
     #             weight_array = [2.5, 5, 7.5],
     #             penalty = False)
 
+
+    # tune_weight([inp.reward_list[6],
+    #              inp.reward_list[7]],
+    #             weight_array = [1, 1.5, 2],
+    #             penalty = True)
+
+    # test_trained([inp.reward_list[6],
+    #               inp.reward_list[7]],
+    #              extra = '_fine_tuning')
+
     # plt.show()
+
+    fine_tune([inp.reward_list[6],
+               inp.reward_list[7]],
+               extra = '_penalty_1.5')
 
     # plot_learning()

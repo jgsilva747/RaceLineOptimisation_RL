@@ -842,7 +842,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
 
         if np.absolute(wheel) < 1e-2: # incentivise driving in a straight line
             current_reward += inp.wheel_normalisation_factor
-        else: # complete curve as quickly as possible --> not smooth! How can I make it smooth?
+        else: # complete curve as quickly as possible
             current_reward -= inp.delta_t_normalisation_factor
 
 
