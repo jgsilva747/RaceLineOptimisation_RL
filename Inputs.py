@@ -57,7 +57,7 @@ x4 = 0.3 * 900 # 0.27
 
 # Normalisation factors for reward function
 delta_distance_normalisation_factor = 1 / 10
-delta_t_normalisation_factor = 1.5
+delta_t_normalisation_factor = 1.2
 velocity_normalisation_factor = 1 / 2
 wheel_normalisation_factor = 7.5
 throttle_normalisation_factor = 5

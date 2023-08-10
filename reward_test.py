@@ -424,14 +424,13 @@ if __name__ == "__main__":
     #             weight_array = [1, 1.5, 2],
     #             penalty = True)
 
-    # test_trained([inp.reward_list[6],
-    #               inp.reward_list[7]],
-    #              extra = '_fine_tuning')
+    test_trained([inp.reward_list[6],
+                  inp.reward_list[7]],
+                 extra = '_fine_tuning_penalty_1.2')
 
-    # plt.show()
+    plt.show()
 
-    fine_tune([inp.reward_list[6],
-               inp.reward_list[7]],
-               extra = '_penalty_1.5')
+    # fine_tune([inp.reward_list[6],
+    #            inp.reward_list[7]])
 
     # plot_learning()
