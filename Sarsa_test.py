@@ -36,7 +36,7 @@ print("Setting up model")
 ##########################################################
 
 # Define the environment in the RL library.
-env = CarEnvironment()
+env = CarEnvironment(reward_function=['sarsa'])
 
 # for reproducibility
 torch.manual_seed(inp.seed)
@@ -107,6 +107,7 @@ state_skip = [1,2,3,7,8,9,10,11,12,13, 14,15,16,20,21,22,23]
 state = 0
 
 for i in range( total_states ):
+    print(i)
 
     if i not in state_skip:
 
@@ -146,7 +147,7 @@ for i in range(total_states):
         aux += 1
 
 
-def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False):
+def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False,greedy=False):
 
     global ax_reward
     global policy
@@ -331,6 +332,12 @@ def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False):
     ax_reward.legend(loc='upper left')
     print("\n")
 
+    if greedy:
+        extra = "_greedy"
+    else:
+        extra = ''
+    np.save("/content/drive/My Drive/RL_racing_line/Sarsa_score_hist" + extra + ".npy", np.array(score_hist))
+
     return Q, policy
 
 
@@ -404,31 +411,31 @@ def test_trained() -> None:
     print("Total Reward: {:0.2f}".format( total_reward))
 
 
-import signal
+# import signal
  
-def handler(signum, frame):
+# def handler(signum, frame):
 
-    global ax_reward
-    global policy
-    global score_hist
-    global max_score_hist
+#     global ax_reward
+#     global policy
+#     global score_hist
+#     global max_score_hist
 
-    if inp.plot_stats:
-        ax_reward.plot(score_hist, c='tab:blue', label = 'Episode Reward')
-        ax_reward.plot(max_score_hist, c='tab:orange', label = 'Max Reward')
+#     if inp.plot_stats:
+#         ax_reward.plot(score_hist, c='tab:blue', label = 'Episode Reward')
+#         ax_reward.plot(max_score_hist, c='tab:orange', label = 'Max Reward')
     
-    np.save("sarsa_trained_policy.npy", policy)
-    ax_reward.legend(loc='upper left')
-    plt.show()
+#     np.save("sarsa_trained_policy.npy", policy)
+#     ax_reward.legend(loc='upper left')
+#     plt.show()
 
-    print("\n\n")
-    exit(0)
+#     print("\n\n")
+#     exit(0)
  
-signal.signal(signal.SIGINT, handler)
+# signal.signal(signal.SIGINT, handler)
 
 if __name__ == '__main__':
 
-    '''
+
     ##########
     # Random #
     ##########
@@ -441,29 +448,29 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)'''
+    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)
 
 
-    ############
-    # Variable #
-    ############
-    # Number of episodes
-    n_episodes = int(1e4)
-    # Factor to update Q(s,a)
-    alpha = 0.025 # 0.01 # 0.1
-    # Randomness factor
-    eps = 0.2 # 1
-    # Importance of future rewards (discount factor)
-    gamma = 0.9
+    # ############
+    # # Variable #
+    # ############
+    # # Number of episodes
+    # n_episodes = int(1e5)
+    # # Factor to update Q(s,a)
+    # alpha = 0.025 # 0.01 # 0.1
+    # # Randomness factor
+    # eps = 0.2 # 1
+    # # Importance of future rewards (discount factor)
+    # gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, True)
+    # Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, True)
     
-    '''
+    
     ##################
     # epsilon-greedy #
     ##################
     # Number of episodes
-    n_episodes = int(1e4)
+    n_episodes = int(9e4)
     # Factor to update Q(s,a)
     alpha = 0.5 # 0.01 # 0.1
     # Randomness factor
@@ -471,14 +478,14 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)'''
+    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q,greedy=True)
 
     # Save policy
     # np.save("sarsa_trained_policy.npy", policy)
 
     # Test learnt policy
-    test_trained() 
+    # test_trained() 
 
     # Show all figures
-    plt.show()
+    # plt.show()
 

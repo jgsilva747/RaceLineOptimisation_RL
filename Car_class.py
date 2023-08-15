@@ -141,6 +141,7 @@ class CarEnvironment(gym.Env):
         self.previous_delta = 0
         self.reward = 0
         self.action = [1,0]
+        self.index = 0
 
         # Define initial state
         state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
@@ -212,6 +213,7 @@ class CarEnvironment(gym.Env):
         self.previous_delta = 0
         self.reward = 0
         self.action = [1,0]
+        self.index = 0
 
         return self.state, self.current_position
 
@@ -274,7 +276,8 @@ class CarEnvironment(gym.Env):
                                                  self.previous_v,
                                                  self.previous_delta,
                                                  action,
-                                                 self.action)
+                                                 self.action,
+                                                 self.index)
 
 
         # Update previous distance to last checkpoint
@@ -285,5 +288,8 @@ class CarEnvironment(gym.Env):
         self.reward += reward
         
         self.action = action
+
+        # Update number of steps in current episode
+        self.index += 1
 
         return self.state, reward, self.done, self.finish_line, self.current_position # , self.travelled_distance

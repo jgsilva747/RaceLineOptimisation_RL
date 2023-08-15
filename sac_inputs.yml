@@ -1,16 +1,17 @@
 fit_settings:
     n_steps : 100000
-    limit : 200000
+    limit : 1000000 # 200000
     n_steps_per_epoch : 500 # 100
     update_interval : 1
     update_start_step : 500
     random_steps : 500
+    cache: 1000000
 algo_settings:    
-    batch_size : 64
+    # batch_size : 64
     gamma : 0.99
     actor_learning_rate : 0.0005
     critic_learning_rate : 0.003
     temp_learning_rate : 0.0003
-    tau : 0.1
+    # tau : 0.1
     n_critics : 2
     initial_temperature : 2.0

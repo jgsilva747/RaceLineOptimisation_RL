@@ -61,7 +61,7 @@ def get_acceleration(speed, mass, throttle):
 
     # Compute acceleration when braking
     if throttle <= 0:
-        acc = inp.braking_acceleration * 9.81
+        acc = 9.81 * ( 5e-4 * speed**2 - 6.7e-3 * speed + 1.9 ) if speed > inp.min_speed else 0 # inp.braking_acceleration * 9.81 * speed / (360/3.6)
     # Compute acceleration when accelerating
     else:
         # profile based on empirical data

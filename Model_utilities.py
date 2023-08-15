@@ -137,7 +137,8 @@ def get_acceleration(speed, mass, throttle):
 
     # Compute acceleration when braking
     if throttle <= 0:
-        acc = inp.braking_acceleration * 9.81 * speed / (360/3.6)
+        acc = 9.81 * ( 5e-4 * speed**2 - 6.7e-3 * speed + 1.9 ) if speed > inp.min_speed else 0 # max 5.5g, brake from 100 km/h to 0 in 1.5 s
+        # inp.braking_acceleration * 9.81 * speed / (360/3.6)
     # Compute acceleration when accelerating
     else:
         # profile based on empirical data
@@ -145,7 +146,7 @@ def get_acceleration(speed, mass, throttle):
         acc = force / mass
 
     return throttle * acc
-    
+
 
 def left_track(position, index, margin):
     '''
@@ -679,8 +680,13 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
     acc_y_tangent = np.cos(angle) * acceleration * velocity[1] / speed_norm
 
     # Compute normal acceleration
-    acc_x_normal = - np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[1] / speed_norm # acceleration + 
-    acc_y_normal = np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[0] / speed_norm # acceleration + 
+    # acc_x_normal = - np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[1] / speed_norm
+    # acc_y_normal = np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[0] / speed_norm
+    
+    acc_x_normal = - ( np.tan(angle) * ( speed_norm**2 / inp.wheelbase_length ) + np.sin(angle) * acceleration ) * velocity[1] / speed_norm
+    acc_y_normal = ( np.tan(angle) * ( speed_norm**2 / inp.wheelbase_length ) + np.sin(angle) * acceleration ) * velocity[0] / speed_norm
+    # acc_x_normal = - ( np.sin(angle) * acceleration ) * velocity[1] / speed_norm
+    # acc_y_normal = ( np.sin(angle) * acceleration ) * velocity[0] / speed_norm
 
     # Add normal and tangent accelerations in cartesian coordinates
     acc_x = acc_x_tangent + acc_x_normal 
@@ -714,12 +720,12 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
     # Compute difference between current angle and track angle
     delta_heading = np.arctan2( track_direction[1] , track_direction[0] ) - absolute_heading
 
-    # Check if relative angle is within [-pi, pi]
+    # Check if relative angle is within ]-pi, pi]
     if delta_heading > np.pi:
         delta_heading -= 2 * np.pi
-    elif delta_heading < -np.pi:
+    elif delta_heading <= -np.pi:
         delta_heading += 2 * np.pi
-    
+
     # Get future curvatures list
     curvature_list, centerline_pos = get_future_curvatures(new_position, index)
 
@@ -737,7 +743,7 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
 
 
 
-def get_reward(left_track, finish_line, previous_distance, current_distance, reward_function, state, prev_v, prev_delta, new_action, old_action):
+def get_reward(left_track, finish_line, previous_distance, current_distance, reward_function, state, prev_v, prev_delta, new_action, old_action, sim_index):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -765,7 +771,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         Current ction array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
     old_action: float array [1 x 2]
         Previous action array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
-    
+    sim_index: int
+        Index counting number of steps in current episode. Index is set to 0 when episode ends
 
     Returns
     -------
@@ -781,8 +788,12 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
     # Reset distance when new index is reached
     # otherwise delta would cancel out everyting that
     # was achieved before (e.g.: delta = - 400 m)
-    if np.absolute(delta_distance_travelled) > inp.index_pos_tolerance:
-        delta_distance_travelled = 0
+    if delta_distance_travelled < 0:
+        delta_distance_travelled = state[0] * inp.delta_t
+
+    # SARSA distance reward
+    if 'sarsa' in reward_function:
+        return delta_distance_travelled * inp.delta_distance_normalisation_factor, delta_distance_travelled
 
     # Add distance reward
     if 'distance' in reward_function:
@@ -850,11 +861,16 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
     if finish_line:
         current_reward += 0 # 13e
 
+    if 'superhuman' in reward_function:
+        if sim_index % (1/inp.delta_t)/inp.superhuman_frequency == 0:
+            current_reward += delta_distance_travelled * ( inp.superhuman_discount ** ( sim_index * inp.delta_t ) )
+
+        if left_track:
+            current_reward -= 5e-4 * state[0]**2
     # Collision penalty
-    if left_track:
+    elif left_track:
         current_reward -= 1e3
-        # NOTE: By penalising collisions as a function of the velocity norm,
-        #       the agent learns that collisions can be avoided by going slower # NOTE: FAILED!! Not a good idea
+        # NOTE: By penalising collisions as a function of the velocity norm
 
     # TODO: Add centripetal acceleration penalty (car drifts if there is not enough traction)
 

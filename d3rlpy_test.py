@@ -64,7 +64,7 @@ def train() -> None:
 
 def test_trained() -> None:
     
-    sac = d3rlpy.load_learnable("sac_agent.d3", device=None)
+    sac = d3rlpy.load_learnable("reward_test/'max_acc', 'straight_line'_7.5.d3", device=None)
 
     env = CarEnvironment()
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     d3rlpy.seed(inp.seed)
     torch.manual_seed(inp.seed)
 
-    train()
+    # train()
 
     test_trained()
 

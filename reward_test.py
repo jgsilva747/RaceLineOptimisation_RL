@@ -39,9 +39,9 @@ def train(reward_function) -> None:
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][') + '_long_run' # + '_penalty_' + str(inp.delta_t_normalisation_factor)
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_long_run' # + '_penalty_' + str(inp.delta_t_normalisation_factor)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
@@ -63,16 +63,21 @@ def train(reward_function) -> None:
     )
 
     # replay buffer for experience replay
-    buffer = d3rlpy.dataset.create_fifo_replay_buffer(
+    fifo_buffer = d3rlpy.dataset.FIFOBuffer(
         limit=sac_inputs["fit_settings"]["limit"],
-        env=env,
-        transition_picker=transition_picker,
+        # env=env,
+        # transition_picker=transition_picker,
     )
+
+    replay_buffer = d3rlpy.dataset.ReplayBuffer(buffer=fifo_buffer,
+                                                env=env,
+                                                transition_picker=transition_picker,
+                                                cache_size=sac_inputs["fit_settings"]["cache"])
 
     # start training
     sac.fit_online(
         env,
-        buffer,
+        replay_buffer,
         eval_env=eval_env,
         n_steps=sac_inputs["fit_settings"]["n_steps"],
         n_steps_per_epoch=sac_inputs["fit_settings"]["n_steps_per_epoch"],
@@ -280,14 +285,14 @@ def fine_tune(reward_function,
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][') + '_fine_tuning' # + '_penalty_' + str(inp.delta_t_normalisation_factor)
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_fine_tuning' + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_fine_tuning' + '_penalty_' + str(inp.delta_t_normalisation_factor)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_fine_tuning' + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
 
-    read_file = './reward_test/' + str(reward_function).strip('][') + extra
+    read_file = (jupyter_dir if inp.jupyter_flag else './reward_test/') + str(reward_function).strip('][') + extra
 
     print(f'Fine Tuning: opening {read_file}')
 
@@ -324,7 +329,6 @@ def fine_tune(reward_function,
     )
     # Save trained agent
     sac.save(file_name + '.d3')
-
 
 
 '''
@@ -369,27 +373,24 @@ if __name__ == "__main__":
     [5] --> 'min_curvature'
     [6] --> 'max_acc'
     [7] --> 'straight_line'
+    [8] --> Distance progress + collision with kinetic energy ('from superhuman performance with DRL paper')
     '''
 
-    '''
-    # To test individual reward function:
-    reward_function = inp.reward_list[0]
-    train([reward_function])
-    '''
-
-    '''
-    # To test every reward function individually:
-    for reward_function in inp.reward_list:
-        train([reward_function])
-    '''
+    # # To test individual reward function:
+    # reward_function = inp.reward_list[8]
+    # train([reward_function])
 
 
-    # To test multiple reward functions simultaneously:
-    reward_function = [
-                        inp.reward_list[6],
-                        inp.reward_list[7]
-                      ]
+    # # To test every reward function individually:
+    # for reward_function in inp.reward_list:
+    #     train([reward_function])
 
+
+    # # To test multiple reward functions simultaneously:
+    # reward_function = [
+    #                     inp.reward_list[6],
+    #                     inp.reward_list[7]
+    #                   ]
 
     # train(reward_function)
 
@@ -413,8 +414,8 @@ if __name__ == "__main__":
     #     test_trained(reward_function)
 
 
-    # tune_weight([inp.reward_list[4],
-    #              inp.reward_list[6]],
+    # tune_weight([inp.reward_list[3],
+    #              inp.reward_list[7]],
     #             weight_array = [2.5, 5, 7.5],
     #             penalty = False)
 
@@ -424,13 +425,20 @@ if __name__ == "__main__":
     #             weight_array = [1, 1.5, 2],
     #             penalty = True)
 
-    test_trained([inp.reward_list[6],
-                  inp.reward_list[7]],
-                 extra = '_fine_tuning_penalty_1.2')
+    # test_trained([inp.reward_list[6],
+    #               inp.reward_list[7]],
+    #              extra = '_fine_tuning_penalty_1')
 
-    plt.show()
+    # test_trained([inp.reward_list[8]],
+    #              extra = '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency))
+
+    # test_trained([inp.reward_list[8]],
+    #              extra = '_fine_tuning_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency))
+
+    # plt.show()
 
     # fine_tune([inp.reward_list[6],
-    #            inp.reward_list[7]])
+    #            inp.reward_list[7]],
+    #           extra='fine_tuning_penalty_' + str(inp.delta_t_normalisation_factor))
 
     # plot_learning()

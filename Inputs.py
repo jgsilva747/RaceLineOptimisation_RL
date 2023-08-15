@@ -19,7 +19,7 @@ max_min = 3 # min
 braking_acceleration = 5.5 # g
 
 # Define tolerance used to update track coordinate index
-index_pos_tolerance = 6 # m
+index_pos_tolerance = 0 # m
 
 # Margin to end simulation when car leaves track (in meters)
 left_track_margin = 0
@@ -53,14 +53,18 @@ circuit_factor = 1e5
 x1 = 5 * 900
 x2 = 7.3e-2 * 900
 x3 = 55 # km/h
-x4 = 0.3 * 900 # 0.27
+x4 = 0.29 * 900 # 0.27
 
 # Normalisation factors for reward function
 delta_distance_normalisation_factor = 1 / 10
-delta_t_normalisation_factor = 1.2
+delta_t_normalisation_factor = 1.1
 velocity_normalisation_factor = 1 / 2
 wheel_normalisation_factor = 7.5
 throttle_normalisation_factor = 5
+superhuman_discount = 0.98
+superhuman_frequency = 0.25 # Hz
+# Try 0.98 with freq = 5
+# Or simply try 0.95 for a much longer time
 
 # Braking distance
 braking_distance = 150 # m
@@ -129,7 +133,9 @@ reward_list = ['distance',
                 'constant_action',
                 'min_curvature',
                 'max_acc',
-                'straight_line']
+                'straight_line',
+                'superhuman',
+                'sarsa']
 
 
 ################

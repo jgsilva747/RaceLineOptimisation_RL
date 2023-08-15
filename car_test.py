@@ -29,19 +29,23 @@ if __name__ ==  '__main__':
     max_action = float(env.action_space.high[0])
     min_Val = torch.tensor(1e-7).float().to(inp.device) 
 
-    # Create DDPG instance
-    agent = ddpg.DDPG(state_dim, action_dim)
+    # # Create DDPG instance
+    # agent = ddpg.DDPG(state_dim, action_dim)
 
-    # Create noise instance
-    ou_noise = ddpg.OU_Noise(action_dim, inp.seed)
-    exploration_factor = inp.exploration_factor
+    # # Create noise instance
+    # ou_noise = ddpg.OU_Noise(action_dim, inp.seed)
+    # exploration_factor = inp.exploration_factor
 
     if inp.plot_episode:
-        fig, ax = plt.subplots(figsize=( 8 , 6))
+        fig, ax = plt.subplots(figsize=( 8 , 3.5))
         ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
         ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
+        ax.set_xlabel('X Coordinates [m]')
+        ax.set_ylabel('Y Coordinates [m]')
+        # ax.grid()
         # Apply tight layout to figure
         plt.tight_layout()
+        plt.show()
 
     if inp.plot_stats:
         fig_reward, ax_reward = plt.subplots(figsize=( 8 , 6))
