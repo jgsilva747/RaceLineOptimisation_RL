@@ -8,7 +8,7 @@ from time import time
 
 from Car_class import CarEnvironment
 
-sac = d3rlpy.load_learnable("sac_agent.d3", device=None)
+# sac = d3rlpy.load_learnable("sac_agent.d3", device=None)
 
 def test_integrator(delta_t, integration_method, n_runs) -> None:
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     ax.legend(loc=0)
 
-    ax.set_xlabel('$\Delta$ t [s]')
+    ax.set_xlabel('$dt$ [s]')
     ax.set_ylabel('Integration Error [%]')
 
     cbar = fig.colorbar(cmap, ax=ax)

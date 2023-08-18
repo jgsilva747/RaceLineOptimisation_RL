@@ -17,13 +17,27 @@ import Model_utilities as util
 from Model_utilities import coordinates, MAX_INDEX
 
 
-# TODO: comment logging codes
-
 # Create a custom environment that adheres to the OpenAI Gym interface.
 class CarEnvironment(gym.Env):
     def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method,
                  log_file = 'run_log.txt', reward_function=['distance']):
-        # TODO: explain function
+        '''
+        Initialise car class and required variables
+
+        Parameters
+        -----------
+        delta_t: float
+            Simulation time step [s]
+        integration_method: string
+            Chosen integrator. Default: Euler integrator
+        log_file: string
+            Name of log file. Ignored when log file is 'run_log.txt'. which is the default option
+        reward_function: string array
+            Array of strings containing the reward functions. Default: distance reward
+        
+        Returns
+        ----------
+        '''
 
         # Define integration settings
         self.delta_t = delta_t
@@ -142,16 +156,21 @@ class CarEnvironment(gym.Env):
         self.reward = 0
         self.action = [1,0]
         self.index = 0
+        self.mean_v = 0
+        self.v_list = []
 
         # Define initial state
         state_branch = [self.v_0, self.a_0, self.n_0, self.delta_heading_0]
         self.state_0 = np.concatenate( [state_branch , self.curvature_list_0 , self.lidar_samples_0 , [self.track_limits_0]] )
         
+        # Assign reward function variable
         self.reward_function = reward_function
 
+        # Check if requested reward function exists
         for func in reward_function:
             assert func in inp.reward_list, f"{func} not implemented. Please pick one from {inp.reward_list}"
 
+        # Initialise log file
         self.logging_flag = False
         if inp.log and log_file != 'run_log.txt':
             
@@ -175,17 +194,25 @@ class CarEnvironment(gym.Env):
             self.info_logger.addHandler(info_handler)
 
             self.info_logger.setLevel(logging.INFO)
-
-            # Configure the logging settings (you can modify the filename, log level, etc.)
-            # self.info_log = logging.basicConfig(filename=self.log_file, level=logging.INFO, format='%(message)s') # s
             
 
     def reset(self, seed = inp.seed):
-        # TODO: explain function
+        '''
+        Reset car class variables
+        
+        Parameters
+        ---------
+        seed: int
+            Random generator seed
 
+        Returns
+        ---------
+        '''
+
+        # Log reward, number of steps of current episode and lap time
         if self.logging_flag:
             # Log info from last run
-            self.info_logger.info(float(self.reward))
+            self.info_logger.info(f'{float(self.reward)} {float(self.index)} {float(self.time)}')
             # logging.info(f"Travelled Distance: {self.travelled_distance}, Position: {self.current_position}")
 
 
@@ -214,11 +241,20 @@ class CarEnvironment(gym.Env):
         self.reward = 0
         self.action = [1,0]
         self.index = 0
+        self.mean_v = 0
+        self.v_list = []
 
         return self.state, self.current_position
 
     def step(self, action):
-        # TODO: explain function
+        '''
+        Propagate state and auxiliar class variables by one time step
+
+        Parameters
+        ---------
+        action: float array [1 x 2]
+            Array of current time step's action (throttle + steering)
+        '''
 
         # Track direction
         if self.circuit_index >= MAX_INDEX:
@@ -236,6 +272,11 @@ class CarEnvironment(gym.Env):
                                                                                                self.circuit_index,
                                                                                                delta_t = self.delta_t,
                                                                                                integration_method=self.integration_method)
+
+        # Update mean velocity
+        old_mean_v = self.mean_v
+        self.v_list.append(new_state[0])
+        #self.mean_v = np.mean(self.v_list)
 
         # Update time
         self.time += self.delta_t
@@ -277,7 +318,9 @@ class CarEnvironment(gym.Env):
                                                  self.previous_delta,
                                                  action,
                                                  self.action,
-                                                 self.index)
+                                                 self.index,
+                                                 old_mean_v,
+                                                 self.mean_v)
 
 
         # Update previous distance to last checkpoint

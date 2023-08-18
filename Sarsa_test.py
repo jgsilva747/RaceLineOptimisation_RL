@@ -336,7 +336,7 @@ def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False,greedy=Fa
         extra = "_greedy"
     else:
         extra = ''
-    np.save("/content/drive/My Drive/RL_racing_line/Sarsa_score_hist" + extra + ".npy", np.array(score_hist))
+    np.save("sarsa_score_hist" + extra + ".npy", np.array(score_hist))
 
     return Q, policy
 
@@ -481,7 +481,7 @@ if __name__ == '__main__':
     Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q,greedy=True)
 
     # Save policy
-    # np.save("sarsa_trained_policy.npy", policy)
+    np.save("sarsa_trained_policy.npy", policy)
 
     # Test learnt policy
     # test_trained() 

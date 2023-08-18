@@ -170,7 +170,7 @@ def left_track(position, index, margin):
 
     # Max index exceeded - will compute angle of previous (which is the final) track portion
     if index >= MAX_INDEX:
-        index = MAX_INDEX - 1
+        index = 0 # MAX_INDEX - 1
 
     # Compute angle/direction of current portion of the track in the xy frame (in degrees)
     angle = np.rad2deg(math.atan2(coordinates_out[index+1,1] - coordinates_out[index,1], coordinates_out[index+1,0] - coordinates_out[index,0]))  
@@ -291,7 +291,7 @@ def get_circuit_index(position,circuit_index):
 
     if circuit_index >= MAX_INDEX:
         flag = True
-        circuit_index = MAX_INDEX - 1
+        circuit_index = 0 # MAX_INDEX - 1
 
     # Get position of last checkpoint
     last_checkpoint = coordinates[ circuit_index ]
@@ -333,7 +333,7 @@ def get_closest_point(position, id):
     '''
 
     if id >= MAX_INDEX:
-        id = MAX_INDEX - 1
+        id = 0 # MAX_INDEX - 1
 
     # Compute slope of track equation in xy coordinates
     track_slope = ( coordinates[id + 1, 1] - coordinates[id , 1] ) / ( coordinates[id + 1, 0] - coordinates[id , 0] )
@@ -408,7 +408,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
     # Initialise future curvatures array
     future_curvatures = []
 
-    # Compute unit track direction # FIXME: might have problems when agent reaches last index
+    # Compute unit track direction
     track_direction = lambda id : ( coordinates[id + 1] - coordinates[id] ) / np.linalg.norm( coordinates[id + 1] - coordinates[id] )
 
     # Initial track direction
@@ -431,7 +431,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
         # Get index of current point
         current_index , _, _ = get_circuit_index(current_point, current_index)
         if current_index >= MAX_INDEX:
-            current_index = MAX_INDEX - 1
+            current_index = 0 # MAX_INDEX - 1
 
 
         # Get current angle of track
@@ -499,33 +499,33 @@ def get_lidar_samples(current_position, index):
             lidar_position = lidar_position + 10 * current_direction
             lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
-            if np.linalg.norm(lidar_position - current_position) > 210 or final_index_flag:
+            if np.linalg.norm(lidar_position - current_position) > 210: # or final_index_flag:
                 break
         
         # Move 10 m back
-        if not final_index_flag:
-            lidar_position = lidar_position - 10 * current_direction
-            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
+        # if not final_index_flag:
+        lidar_position = lidar_position - 10 * current_direction
+        lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
         # Get 2.5 m precision
         while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + 2.5 * current_direction
             lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
-            if np.linalg.norm(lidar_position - current_position) > 202.5 or final_index_flag:
+            if np.linalg.norm(lidar_position - current_position) > 202.5: # or final_index_flag:
                 break
 
         # Move 2.5 m back
-        if not final_index_flag:
-            lidar_position = lidar_position - 2.5 * current_direction
-            lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
+        # if not final_index_flag:
+        lidar_position = lidar_position - 2.5 * current_direction
+        lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
         # Get 1 m precision (slower with more precision)
         while not left_track(lidar_position, lidar_index, margin=0):
             lidar_position = lidar_position + current_direction
             lidar_index , _ , final_index_flag = get_circuit_index(lidar_position, lidar_index)
 
-            if np.linalg.norm(lidar_position - current_position) > 201 or final_index_flag:
+            if np.linalg.norm(lidar_position - current_position) > 201: # or final_index_flag:
                 break
 
         # Update LIDAR measurement
@@ -563,7 +563,22 @@ def rotate_reference(vec_to_rotate, ref_vec_old, ref_vec_new):
 
 def integrate(state, derivative, delta_t, method = 'euler'):
     '''
-    TODO: explain function
+    Function that integrates a state given its derivative
+
+    Parameters
+    ---------
+    state: float array
+        State array
+    derivative: float array
+        Derivative array of each state entry. Has to have the same dimension as the state
+    delta_t: float
+        Time step [s]
+    method: string
+        Integration method (default: Euler integrator)
+    
+    Returns
+    -------
+    integrated_state: float array
     '''
 
     # Simple Euler
@@ -735,7 +750,7 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
     # Updated state
     # state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] 
     state_branch = [v_norm, a, n, delta_heading]
-    state = np.concatenate( [state_branch , curvature_list , lidar_samples , [float(False)]] ) # NOTE: Last entry is only updated
+    state = np.concatenate( [state_branch , curvature_list , lidar_samples , [0]] ) # NOTE: Last entry is only updated
                                                                                                # after running assess_termination()
                                                                                                # in the step function
     # Return updated state, position and mass
@@ -743,7 +758,7 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
 
 
 
-def get_reward(left_track, finish_line, previous_distance, current_distance, reward_function, state, prev_v, prev_delta, new_action, old_action, sim_index):
+def get_reward(left_track, finish_line, previous_distance, current_distance, reward_function, state, prev_v, prev_delta, new_action, old_action, sim_index, old_mean_v, mean_v):
     '''
     Compute the reward given the current status of the car w.r.t. the circuit
 
@@ -818,8 +833,10 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
     if 'max_velocity' in reward_function:
         delta_v = ( state[0] - prev_v )
 
-        # Add 0 when braking/coasting, add reward when accelerating
-        current_reward += max( 0 , delta_v) * inp.velocity_normalisation_factor
+        current_reward += delta_v * inp.velocity_normalisation_factor
+
+        # # Add 0 when braking/coasting, add reward when accelerating
+        # current_reward += max( 0 , delta_v) * inp.velocity_normalisation_factor
 
     # Add action instability penalty
     if 'constant_action' in reward_function:
@@ -832,27 +849,27 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
 
         delta_cmd = np.absolute( new_cmd - old_cmd ) # from 0 to 2
 
-        current_reward -= delta_cmd * inp.wheel_normalisation_factor
+        current_reward -= delta_cmd * 2 # inp.wheel_normalisation_factor
 
 
     # Add steering penality to force car to turn as little as possible
     if 'min_curvature' in reward_function:
         steering = np.absolute(new_action[1]) # from 0 to 1
-        current_reward -= steering * inp.wheel_normalisation_factor
+        current_reward -= steering # * inp.wheel_normalisation_factor
 
     if 'max_acc' in reward_function:
         throttle = new_action[0] # from -1 to 1
 
         if throttle > 0.99: # incentivise max throttle
-            current_reward += inp.throttle_normalisation_factor
+            current_reward += 3 * inp.throttle_normalisation_factor # * delta_distance_travelled * inp.delta_distance_normalisation_factor
         else: # break as quickly as possible
             current_reward -= inp.delta_t_normalisation_factor
 
     if 'straight_line' in reward_function:
         wheel = new_action[1] # from -1 to 1
 
-        if np.absolute(wheel) < 1e-2: # incentivise driving in a straight line
-            current_reward += inp.wheel_normalisation_factor
+        if np.absolute(wheel) < 1e-1: # incentivise driving in a straight line
+            current_reward += 3 * inp.wheel_normalisation_factor
         else: # complete curve as quickly as possible
             current_reward -= inp.delta_t_normalisation_factor
 
@@ -862,8 +879,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         current_reward += 0 # 13e
 
     if 'superhuman' in reward_function:
-        if sim_index % (1/inp.delta_t)/inp.superhuman_frequency == 0:
-            current_reward += delta_distance_travelled * ( inp.superhuman_discount ** ( sim_index * inp.delta_t ) )
+        if sim_index % (1/inp.delta_t)/inp.superhuman_frequency == 0 or finish_line:
+            current_reward += delta_distance_travelled * ( inp.superhuman_discount ** ( sim_index * inp.delta_t / inp.superhuman_frequency ) )
 
         if left_track:
             current_reward -= 5e-4 * state[0]**2
