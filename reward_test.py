@@ -39,21 +39,21 @@ def train(reward_function) -> None:
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][') # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_test_short_18' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_testing_short__times_3' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_normal_8' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
 
     # setup algorithm
     sac = d3rlpy.algos.SACConfig(**sac_inputs["algo_settings"],
-                                # actor_encoder_factory = encoder_factory,
-                                # critic_encoder_factory = encoder_factory,
-                                # reward_scaler = reward_scaler
+                                actor_encoder_factory = encoder_factory,
+                                critic_encoder_factory = encoder_factory,
+                                reward_scaler = reward_scaler
                                 ).create(device=inp.device)
 
-    # # default sac
+    # default sac
     # sac = d3rlpy.algos.SACConfig(reward_scaler = reward_scaler).create(device=inp.device)
 
     # multi-step transition sampling
@@ -522,14 +522,14 @@ if __name__ == "__main__":
                     #  [inp.reward_list[4],
                     #   inp.reward_list[6]],
 
-                    #  [inp.reward_list[8]],
+                    # [inp.reward_list[8]]
 
                     #  [inp.reward_list[5],
                     #   inp.reward_list[6]],
                     ]
 
-    # for reward_function in list_to_train:
-    #     train(reward_function)
+    for reward_function in list_to_train:
+        train(reward_function)
 
     # trained_list = [[inp.reward_list[2],
     #                  inp.reward_list[3]],
@@ -595,8 +595,17 @@ if __name__ == "__main__":
     #                         "'time', 'forward_velocity', 'constant_action'",
     #                         "'time', 'max_velocity', 'constant_action'"])
 
-    test_trained_file_name(["'max_acc', 'straight_line'_testing_short__times_10"])
-    plt.show()
+    # test_trained_file_name(["'max_acc', 'straight_line'_testing_short_times_5",
+    #                         "'max_acc', 'straight_line'_testing_short_times_10",
+    #                         "'max_acc', 'straight_line'_testing_short_times_15",
+    #                         "'max_acc', 'straight_line'_testing_short_18",
+    #                         "'max_acc', 'straight_line'_testing_short_20",
+    #                         "'max_acc', 'straight_line'_testing_short_22",
+    #                         "'max_acc', 'straight_line'_testing_short_25",
+    #                         "'max_acc', 'straight_line'_normal_7.5",
+    #                         "'superhuman'_normal_98"
+    #                         ])
+    # plt.show()
 
     # fine_tune([inp.reward_list[6],
     #            inp.reward_list[7]],

@@ -797,6 +797,11 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         travelled distance between time steps
     '''
 
+    ##############
+    # Experiment #
+    factor = 1   #
+    ##############
+    
     current_reward = 0
     delta_distance_travelled = current_distance - previous_distance # positive if car is moving forward
 
@@ -861,17 +866,17 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         throttle = new_action[0] # from -1 to 1
 
         if throttle > 0.99: # incentivise max throttle
-            current_reward += 3 * inp.throttle_normalisation_factor # * delta_distance_travelled * inp.delta_distance_normalisation_factor
+            current_reward += factor * inp.throttle_normalisation_factor # * delta_distance_travelled * inp.delta_distance_normalisation_factor
         else: # break as quickly as possible
-            current_reward -= inp.delta_t_normalisation_factor
+            current_reward -= factor * inp.delta_t_normalisation_factor * inp.delta_t
 
     if 'straight_line' in reward_function:
         wheel = new_action[1] # from -1 to 1
 
-        if np.absolute(wheel) < 1e-1: # incentivise driving in a straight line
-            current_reward += 3 * inp.wheel_normalisation_factor
+        if np.absolute(wheel) < 1e-2: # incentivise driving in a straight line
+            current_reward += factor * inp.wheel_normalisation_factor
         else: # complete curve as quickly as possible
-            current_reward -= inp.delta_t_normalisation_factor
+            current_reward -= factor * inp.delta_t_normalisation_factor * inp.delta_t
 
 
     # Finish line reward
@@ -886,7 +891,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
             current_reward -= 5e-4 * state[0]**2
     # Collision penalty
     elif left_track:
-        current_reward -= 1e3
+        current_reward -= 1e3 # 1e3
         # NOTE: By penalising collisions as a function of the velocity norm
 
     # TODO: Add centripetal acceleration penalty (car drifts if there is not enough traction)
