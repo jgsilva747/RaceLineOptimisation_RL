@@ -866,7 +866,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         throttle = new_action[0] # from -1 to 1
 
         if throttle > 0.99: # incentivise max throttle
-            current_reward += factor * inp.throttle_normalisation_factor # * delta_distance_travelled * inp.delta_distance_normalisation_factor
+            current_reward += factor * inp.throttle_normalisation_factor
         else: # break as quickly as possible
             current_reward -= factor * inp.delta_t_normalisation_factor * inp.delta_t
 
@@ -884,8 +884,9 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         current_reward += 0 # 13e
 
     if 'superhuman' in reward_function:
-        if sim_index % (1/inp.delta_t)/inp.superhuman_frequency == 0 or finish_line:
-            current_reward += delta_distance_travelled * ( inp.superhuman_discount ** ( sim_index * inp.delta_t / inp.superhuman_frequency ) )
+        # if sim_index % (1/inp.delta_t)/inp.superhuman_frequency == 0 or finish_line:
+        #     current_reward += delta_distance_travelled * ( inp.superhuman_discount ** ( sim_index * inp.delta_t / inp.superhuman_frequency ) )
+        current_reward += delta_distance_travelled * ( inp.superhuman_discount ** (sim_index * inp.delta_t) )
 
         if left_track:
             current_reward -= 5e-4 * state[0]**2

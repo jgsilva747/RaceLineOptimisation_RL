@@ -59,9 +59,9 @@ x4 = 0.29 * 900 # 0.27
 delta_distance_normalisation_factor = 1 / 10
 delta_t_normalisation_factor = 1
 velocity_normalisation_factor = 1 / 2
-wheel_normalisation_factor = 8 # 7.5
+wheel_normalisation_factor = 7.5
 throttle_normalisation_factor = 5
-superhuman_discount = 0.97
+superhuman_discount = 0.98
 superhuman_frequency = 1 # Hz
 # Try 0.98 with freq = 5
 # Or simply try 0.95 for a much longer time
