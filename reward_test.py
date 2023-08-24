@@ -39,9 +39,9 @@ def train(reward_function) -> None:
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][') + '_test_short_18' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_' + str(inp.superhuman_discount) + '_seed_' + str(inp.seed) + '_100_runs' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_500k_steps' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + str(inp.superhuman_discount) + '_seed_' + str(inp.seed) + '_100_runs' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
@@ -360,37 +360,54 @@ def tune_weight(reward_func, weight_array, penalty = False):
 
 
 
-def plot_learning(ax, reward_function, color = 'tab:blue', label = None):
+def plot_learning(reward_function, color_lst = None, label_lst = None):
+
+    fig, ax = plt.subplots(figsize=( 10 , 3))
     
     # Read data
-    file_name = './reward_test/' + str(reward_function).strip('][') + ".txt"
-    data_array = np.genfromtxt(file_name)
+    for reward_func in reward_function:
 
-    n_steps = sac_inputs["fit_settings"]["n_steps"]
+        step_array = []
+        step_aux = 0
 
-    # Remove repeated entry in the beginning, remove last unfinished entry
-    data_array = data_array[1:-1]
+        index  = reward_function.index(reward_func)
 
-    # Create array with number of steps
-    steps_array = np.arange(0, n_steps + 1, n_steps / (len(data_array) - 1) )
+        file_name = './reward_test/' + str(reward_func) + ".txt"
+        data_array = np.genfromtxt(file_name)
 
-    # Create array of median values
-    if plot_median:
+        for step in data_array[:,1]:
+            step_aux += step
+            step_array.append(step_aux)
+
+        # Create array of median values
+        if plot_median:
+            
+            median_array = np.array( data_array )
+
+            for i in range(len(data_array)):
+
+                index_min = max(0, i + 1 - n_median)
+                median_array[i] = np.median( data_array[index_min : i+1] )
+            
+            data_array = median_array
         
-        median_array = np.array( data_array )
-
-        for i in range(len(data_array)):
-
-            index_min = max(0, i + 1 - n_median)
-            median_array[i] = np.median( data_array[index_min : i+1] )
+        if label_lst is None:
+            label = str(reward_function)
+        else:
+            label = label_lst[index]
         
-        data_array = median_array
+        if color_lst is None:
+            color = 'tab:blue'
+        else:
+            color = color_lst[index]
+
+        # Plot reward evolution
+        ax.plot(step_array, data_array[:,0], color=color, label=label)
     
-    if label is None:
-        label = str(reward_function)
-
-    # Plot reward evolution
-    ax.plot(steps_array, data_array, color=color, label=label)
+    ax.set_xlabel('Steps [-]')
+    ax.set_ylabel('Reward [-]')
+    ax.legend(loc = 'best')
+    fig.tight_layout()
 
 
 def fine_tune(reward_function,
@@ -515,15 +532,15 @@ if __name__ == "__main__":
     # train(reward_function)
 
     # To test list of reward functions
-    # list_to_train = [
-    #                 [inp.reward_list[6],
-    #                  inp.reward_list[7]]
+    list_to_train = [
+                    # [inp.reward_list[6],
+                    #  inp.reward_list[7]]
 
-    #                 # [inp.reward_list[8]]
+                    [inp.reward_list[8]]
 
-    #                 #  [inp.reward_list[5],
-    #                 #   inp.reward_list[6]],
-    #                 ]
+                    #  [inp.reward_list[5],
+                    #   inp.reward_list[6]],
+                    ]
 
     # for reward_function in list_to_train:
     #     train(reward_function)
@@ -592,25 +609,38 @@ if __name__ == "__main__":
     #                         "'time', 'forward_velocity', 'constant_action'",
     #                         "'time', 'max_velocity', 'constant_action'"])
 
-    test_trained_file_name([
-                            # "'max_acc', 'straight_line'_testing_short_times_5",
-                            # "'max_acc', 'straight_line'_testing_short_times_10",
-                            # "'max_acc', 'straight_line'_testing_short_times_15",
-                            # "'max_acc', 'straight_line'_testing_short_18",
-                            # "'max_acc', 'straight_line'_testing_short_20",
-                            # "'max_acc', 'straight_line'_testing_short_22",
-                            # "'max_acc', 'straight_line'_testing_short_25",
-                            # "'max_acc', 'straight_line'_normal_7.5",
-                            "'superhuman'_normal_98",
-                            "'max_acc', 'straight_line'_normal_7.5_throttle_7.5",
-                            "'max_acc', 'straight_line'_normal_7.5_throttle_6",
-                            "'constant_action', 'max_acc'_normal_2",
-                            "'superhuman'_new_formulation_0.98"
-                            ])
-    plt.show()
+    # test_trained_file_name([
+    #                         # "'max_acc', 'straight_line'_testing_short_times_5",
+    #                         # "'max_acc', 'straight_line'_testing_short_times_10",
+    #                         # "'max_acc', 'straight_line'_testing_short_times_15",
+    #                         # "'max_acc', 'straight_line'_testing_short_18",
+    #                         # "'max_acc', 'straight_line'_testing_short_20",
+    #                         # "'max_acc', 'straight_line'_testing_short_22",
+    #                         # "'max_acc', 'straight_line'_testing_short_25",
+    #                         # "'max_acc', 'straight_line'_normal_7.5",
+    #                         "'superhuman'_normal_98",
+    #                         "'max_acc', 'straight_line'_normal_7.5_throttle_7.5",
+    #                         "'max_acc', 'straight_line'_normal_7.5_throttle_6",
+    #                         "'constant_action', 'max_acc'_normal_2",
+    #                         "'superhuman'_new_formulation_0.99",
+    #                         "'superhuman'_new_formulation_0.98",
+    #                         "'superhuman'_new_formulation_0.97",
+    #                         "'superhuman'_new_formulation_0.96",
+    #                         "'superhuman'_long_0.98"
+    #                         ])
+    # plt.show()
 
     # fine_tune([inp.reward_list[6],
     #            inp.reward_list[7]],
     #           extra='_testing_short_7.5')
 
-    # plot_learning()
+    plot_learning(["'superhuman'_new_formulation_0.98",
+                   "'superhuman'_0.98_seed_10_100_runs",
+                   "'superhuman'_0.98_seed_100_100_runs"],
+                   color_lst=['tab:blue',
+                              'tab:green',
+                              'tab:orange'],
+                   label_lst=['Seed: 0',
+                              'Seed: 10',
+                              'Seed: 100'])
+    plt.show()

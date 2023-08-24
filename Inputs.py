@@ -90,7 +90,7 @@ hidden2=64 # 64
 device = torch.cuda.is_available() # True if cuda is available, else false
 
 # Seed
-seed = 0
+seed = 10
 
 # Number of episodes
 n_episodes = int( 50e3 )

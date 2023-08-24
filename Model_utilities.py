@@ -10,6 +10,7 @@
 import numpy as np
 import math
 import os
+import time
 
 # File imports
 import Inputs as inp
@@ -482,6 +483,8 @@ def get_lidar_samples(current_position, index):
     track_angle = np.arctan2( track_direction[1] , track_direction[0] )
 
     for angle in angle_list:
+
+        t_0 = time.time()
 
         # Flag for final index
         final_index_flag = False
