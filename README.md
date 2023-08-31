@@ -24,4 +24,4 @@ Then, run the `raceline.py` file to analyse the resulting learnt strategy.
 
 # Note
 
-The report can be found under the report folder.
+The report can be found in `Raceline_Optimisation_RL.pdf`.
