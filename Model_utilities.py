@@ -655,7 +655,7 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
 
     Parameters
     ----------
-    state: float array [1 x 24]
+    state: float array [1 x 23]
         State array, containing: # veloxity norm [m/s], t acc [m/s^2], n acc [m/s^2], delta heading [rad], 
         10 future curvatures [rad], 9 LIDAR measurements [m], track limits [float]
     position: float array [1 x 2]
@@ -762,9 +762,8 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
     # Updated state
     # state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] 
     state_branch = [v_norm, a, n, delta_heading]
-    state = np.concatenate( [state_branch , curvature_list , lidar_samples , [0]] ) # NOTE: Last entry is only updated
-                                                                                               # after running assess_termination()
-                                                                                               # in the step function TODO: remove last entry completely
+    state = np.concatenate( [state_branch , curvature_list , lidar_samples] )
+
     # Return updated state, position and mass
     return state, new_position, mass, v, centerline_pos
 
@@ -778,7 +777,7 @@ def propagate_dynamics_sarsa(state, position, mass, velocity, track_direction, a
 
     Parameters
     ----------
-    state: float array [1 x 24]
+    state: float array [1 x 23]
         State array, containing: # veloxity norm [m/s], t acc [m/s^2], n acc [m/s^2], delta heading [rad], 
         10 future curvatures [rad], 9 LIDAR measurements [m], track limits [float]
     position: float array [1 x 2]
@@ -887,9 +886,8 @@ def propagate_dynamics_sarsa(state, position, mass, velocity, track_direction, a
     # Updated state
     # state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] 
     state_branch = [v_norm, a, n, delta_heading]
-    state = np.concatenate( [state_branch , curvature_list , lidar_samples , [0]] ) # NOTE: Last entry is only updated
-                                                                                               # after running assess_termination()
-                                                                                               # in the step function TODO: remove last entry completely
+    state = np.concatenate( [state_branch , curvature_list , lidar_samples] )
+
     # Return updated state, position and mass
     return state, new_position, mass, v, centerline_pos
 
@@ -913,7 +911,7 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         Distance, given in m, between car and last checkpoint at current state
     reward_function: array of strings
         Defines which reward function(s) to use (for example, time + distance)
-    state: float array [1 x 24]
+    state: float array [1 x 23]
         State array, containing: # veloxity norm [m/s], t acc [m/s^2], n acc [m/s^2], delta heading [rad], 
         10 future curvatures [rad], 9 LIDAR measurements [m], track limits [float]
     prev_v: float

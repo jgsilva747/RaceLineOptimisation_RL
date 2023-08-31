@@ -22,42 +22,42 @@ from Car_class import CarEnvironment
 
 # List of tunable settings, with respective test values
 
-settings_dict = {'batch_size' : [64, 128, 512], # done
-                'gamma' : [0.5, 0.9, 0.95], # done
-                # 'actor_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                'critic_learning_rate' : [3e-6, 3e-3, 3e-2], # done
-                # 'temp_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2], # done
-                'tau' : [1e-4, 5e-3, 1e-2, 1e-1], # done
-                # 'n_critics' : [1, 3, 4, 5], # done
+settings_dict = {'batch_size' : [64, 128, 512], 
+                'gamma' : [0.5, 0.9, 0.95],
+                'actor_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2],
+                'critic_learning_rate' : [3e-6, 3e-3, 3e-2],
+                'temp_learning_rate' : [3e-6, 3e-5, 1e-4, 5e-4, 3e-3, 3e-2],
+                'tau' : [1e-4, 5e-3, 1e-2, 1e-1],
+                'n_critics' : [1, 3, 4, 5],
                 # 'n_steps' : [],
-                # 'limit' : [1000, 5000, 10000, 25000, 100000], # done
-                # 'n_steps_per_epoch' : [100, 500], # 2000], # done
-                # 'update_interval' : [2, 5], #, 10], # done
-                # 'update_start_step' : [100, 500, 2000], # done
-                # 'random_steps' : [100, 500, 2000], # done
-                # 'initial_temperature' : [2.0, 5.0], # , 10.0], # done
+                'limit' : [1000, 5000, 10000, 25000, 100000],
+                'n_steps_per_epoch' : [100, 500, 2000],
+                'update_interval' : [2, 5, 10],
+                'update_start_step' : [100, 500, 2000], 
+                'random_steps' : [100, 500, 2000],
+                'initial_temperature' : [2.0, 5.0, 10.0],
                 # 'eval_env' : [EnvironmentEvaluator(env_default)], # error
                 # 'buffer' : [ReplayBuffer(BufferProtocol, cache_size=default_settings.get('limit'), env=env_default)], # error
-                # 'optim_factory' : [AdamFactory(amsgrad=True), # done
-                #                 SGDFactory()], # done
+                'optim_factory' : [AdamFactory(amsgrad=True), 
+                                SGDFactory()], 
                                 # RMSpropFactory()], # error
-                'encoder' : [DefaultEncoderFactory(activation='tanh'), # done # NOTE: Important to explain
-                            DefaultEncoderFactory(activation='swish'), # done
-                            # DefaultEncoderFactory(activation='none'),
+                'encoder' : [DefaultEncoderFactory(activation='tanh'),
+                            DefaultEncoderFactory(activation='swish'),
+                            DefaultEncoderFactory(activation='none'),
                 #             # PixelEncoderFactory(), # error
                 #             # VectorEncoderFactory(), # error
                              DenseEncoderFactory(),
-                             DenseEncoderFactory(activation='swish')], # done
-                # 'q_func' : [QRQFunctionFactory()], # done
-                            # IQNQFunctionFactory()], # extremely slow --> cancelled
+                             DenseEncoderFactory(activation='swish')],
+                'q_func' : [QRQFunctionFactory()],
+                            # IQNQFunctionFactory()], # extremely slow
                 'reward_scaler' : [# MinMaxRewardScaler(), # error
                                 # StandardRewardScaler(), # error
                                 # ReturnBasedRewardScaler(), # error
                                 MultiplyRewardScaler(0.1),
                                 MultiplyRewardScaler(10),
                                 MultiplyRewardScaler(20),
-                                MultiplyRewardScaler(50)
-                                #MultiplyRewardScaler(100)
+                                MultiplyRewardScaler(50),
+                                MultiplyRewardScaler(100)
                                 ]}
 
 
@@ -72,7 +72,7 @@ default_settings = {'batch_size' : 256,
                     'temp_learning_rate' : 3e-4,
                     'tau' : 0.001,
                     'n_critics' : 2,
-                    'n_steps' : 50000, # 100000
+                    'n_steps' : 50000,
                     'limit' : 50000,
                     'n_steps_per_epoch' : 1000,
                     'update_interval' : 1,
@@ -87,7 +87,7 @@ default_settings = {'batch_size' : 256,
 
 
 
-# DEFINE "OPTIMAL" SETTINGS
+# DEFINE "OPTIMAL" SETTINGS (STILL TESTING)
 chosen_settings = {'batch_size' : 64,
                     'gamma' : 0.90,
                     'actor_learning_rate' : 5e-4,
@@ -96,7 +96,7 @@ chosen_settings = {'batch_size' : 64,
                     'tau' : 0.1,
                     'n_critics' : 4,
                     'n_steps' : 50000,
-                    'limit' : 2 * 50000, # 2 * n_steps
+                    'limit' : 2 * 50000,
                     'n_steps_per_epoch' : 100,
                     'update_interval' : 2,
                     'update_start_step' : 500,
@@ -111,7 +111,7 @@ chosen_settings = {'batch_size' : 64,
 
 log_file = 'run_log.txt'
 
-tuning_dir = 'tuning_final/'
+tuning_dir = 'tuning/'
 if not os.path.exists(tuning_dir):
     os.makedirs(tuning_dir)
 

@@ -1,6 +1,6 @@
 fit_settings:
     n_steps : 400000
-    limit : 1000000 # 200000
+    limit : 1000000
     n_steps_per_epoch : 500
     update_interval : 1
     update_start_step : 500

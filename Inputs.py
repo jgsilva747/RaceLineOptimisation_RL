@@ -69,53 +69,16 @@ superhuman_frequency = 1 # Hz
 # Braking distance
 braking_distance = 150 # m
 
-#########################
-# DDPG Inputs ############
-#########################
-
-# TODO: Add comments, change values
-capacity= int( 1e6 )
-
-batch_size = 64 # 64
-update_iteration = 100 # 200
-# tau for soft updating
-tau = 0.001 # 0.001   
-
-gamma=0.99 # 0.99
-directory = './'
-hidden1=20 # 20
-hidden2=64 # 64
-
 # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 device = torch.cuda.is_available() # True if cuda is available, else false
 
 # Seed
-seed = 10
-
-# Number of episodes
-n_episodes = int( 50e3 )
-
-# Exploration fator
-exploration_factor = 0.3 # 1
-
-# Noise reduction factor
-noise_reduction_factor = 0.1
-
-# 2, 4e-2
-# Learning rate
-learning_rate_actor = 0.00003 # 6e-4 # 8e-4 # 3e-3
-learning_rate_critic = 0.00003 # 4e-2 # 2e-2
+seed = 0
 
 # show episode plot (trajectories)
 plot_episode = True
 # show reward and action plot
 plot_stats = False
-
-# Noise parameters
-theta = 0.15 # 0.15 from paper
-sigma = 0.2 # 0.2 from paper, 0.25 from code example
-# NOTE: miu = 0 from paper
-
 
 
 #########

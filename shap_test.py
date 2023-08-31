@@ -13,8 +13,8 @@ from Model_utilities import coordinates_in, coordinates_out, coordinates
 from Car_class import CarEnvironment
 
 
-idx_min = 100
-idx_max = 150
+idx_min = 0
+idx_max = -1
 
 
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     actor_model = sac._impl.policy
 
-    data_set = np.load('state_example.npy')
+    data_set = np.load('state_example_curve.npy')
 
 
     # data_set = torch.from_numpy(data_set)

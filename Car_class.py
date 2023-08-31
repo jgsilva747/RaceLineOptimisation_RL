@@ -92,9 +92,9 @@ class CarEnvironment(gym.Env):
                 np.array([+1, +1]).astype(np.float32),
             )
 
-        # Define observation space (24 state entries)
+        # Define observation space (23 state entries)
         self.observation_space = spaces.Box(
-                # veloxity norm, t acc, n acc, delta heading, 10 future curvatures, 9 LIDAR measurements, track limits
+                # veloxity norm, t acc, n acc, delta heading, 10 future curvatures, 9 LIDAR measurements
                 np.array([
                     inp.min_speed, # min velocity
                     -5.5, # min t acc, g
@@ -145,7 +145,6 @@ class CarEnvironment(gym.Env):
                     200, # max LIDAR measurement 7, m
                     200, # max LIDAR measurement 8, m
                     200, # max LIDAR measurement 9, m
-                    1 # track limits bool, float representation
                     ]).astype(np.float32),
             )
 
@@ -317,9 +316,6 @@ class CarEnvironment(gym.Env):
         self.done, self.left_track, self.finish_line = util.assess_termination(new_position,
                                                                                new_circuit_index,
                                                                                self.time)
-        
-        # Update last state entry (containing float representation of bool that indicates if car left the track)
-        new_state[-1] = float(self.left_track)
 
         # Store previous velocity norm
         self.previous_v = self.state[0]

@@ -33,15 +33,16 @@ global file_name
 
 
 
-def train(reward_function) -> None:
+def train(reward_function,
+          file) -> None:
 
     global sac
     global file_name
 
     if inp.jupyter_flag:
-        file_name = jupyter_dir + str(reward_function).strip('][') + '_' + str(inp.superhuman_discount) + '_seed_' + str(inp.seed) + '_100_runs' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = jupyter_dir + str(reward_function).strip('][') + '_' + file
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + 'silverstone_500k' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + file
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
@@ -53,8 +54,7 @@ def train(reward_function) -> None:
                                 reward_scaler = reward_scaler
                                 ).create(device=inp.device)
 
-    # default sac
-    # sac = d3rlpy.algos.SACConfig(reward_scaler = reward_scaler).create(device=inp.device)
+
 
     # multi-step transition sampling
     transition_picker = d3rlpy.dataset.MultiStepTransitionPicker(
@@ -503,6 +503,11 @@ if __name__ == "__main__":
     torch.manual_seed(inp.seed)
 
 
+    # NOTE: Most of this code is commented. This is because each line tests reward functions in different ways.
+    # Most lines are commented simply to run the code faster.
+    # When running this code, uncomment only the desired lines.
+
+
     '''
     [0] --> 'distance'
     [1] --> 'time'
@@ -534,32 +539,32 @@ if __name__ == "__main__":
 
     # To test list of reward functions
     list_to_train = [
-                    # [inp.reward_list[6],
-                    #  inp.reward_list[7]]
+                    [inp.reward_list[6],
+                     inp.reward_list[7]]
 
                     [inp.reward_list[8]]
 
-                    #  [inp.reward_list[5],
-                    #   inp.reward_list[6]],
+                     [inp.reward_list[5],
+                      inp.reward_list[6]],
                     ]
 
     # for reward_function in list_to_train:
     #     train(reward_function)
 
-    # trained_list = [[inp.reward_list[2],
-    #                  inp.reward_list[3]],
+    trained_list = [[inp.reward_list[2],
+                     inp.reward_list[3]],
 
-    #                 [inp.reward_list[2],
-    #                  inp.reward_list[6]],
+                    [inp.reward_list[2],
+                     inp.reward_list[6]],
 
-    #                 [inp.reward_list[2],
-    #                  inp.reward_list[3],
-    #                  inp.reward_list[4]],
+                    [inp.reward_list[2],
+                     inp.reward_list[3],
+                     inp.reward_list[4]],
 
-    #                 [inp.reward_list[2],
-    #                  inp.reward_list[4],
-    #                  inp.reward_list[6]]
-    # ]
+                    [inp.reward_list[2],
+                     inp.reward_list[4],
+                     inp.reward_list[6]]
+    ]
 
     # for reward_function in trained_list:
     #     test_trained(reward_function)
@@ -630,10 +635,10 @@ if __name__ == "__main__":
     #                         "'superhuman'_long_0.98"
     #                         ])
     
-    test_trained_file_name([
-        "'superhuman'_silverstone_fine_tuning_2"
-                            ])
-    plt.show()
+    # test_trained_file_name([
+    #     "'superhuman'_silverstone_fine_tuning_2"
+    #                         ])
+    # plt.show()
 
     # fine_tune([inp.reward_list[8]],
     #           extra='_silverstone_500k') # 500k
