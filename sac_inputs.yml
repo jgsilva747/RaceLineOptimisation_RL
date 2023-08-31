@@ -1,5 +1,5 @@
 fit_settings:
-    n_steps : 100000
+    n_steps : 400000
     limit : 1000000 # 200000
     n_steps_per_epoch : 500
     update_interval : 1
@@ -14,4 +14,3 @@ algo_settings:
     temp_learning_rate : 0.0003
     tau : 0.1
     n_critics : 2
-    initial_temperature : 2.0

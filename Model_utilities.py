@@ -149,6 +149,14 @@ def get_acceleration(speed, mass, throttle):
     return throttle * acc
 
 
+def max_turning_acc(speed):
+    '''
+    # Receives speed norm in m/s, returns max allowed turning acc in m/s^2
+    '''
+
+    return 9.81 * ( 9e-4 * speed**2 - 4.45e-2 * speed + 2.5435 )
+
+
 def left_track(position, index, margin):
     '''
     Assess if agent has left the track
@@ -454,7 +462,7 @@ def get_future_curvatures(position, circuit_index, n_samples = 10, delta_sample 
 
 
 
-def get_lidar_samples(current_position, index):
+def get_lidar_samples(current_position, index, simple=False):
     '''
     Compute distance to wall in 9 directions: 0, +- 15deg, +- 30deg, +- 45deg and +- 90 deg
 
@@ -475,6 +483,9 @@ def get_lidar_samples(current_position, index):
     # Define LIDAR angle list
     angle_list = np.deg2rad( [ -90, -45, -30, -15, 0, 15, 30, 45, 90 ] )
 
+    if simple:
+        angle_list = np.deg2rad( [ -15, 0, 15 ] )
+
     # Initialise lidar samples
     lidar_samples = []
 
@@ -483,8 +494,6 @@ def get_lidar_samples(current_position, index):
     track_angle = np.arctan2( track_direction[1] , track_direction[0] )
 
     for angle in angle_list:
-
-        t_0 = time.time()
 
         # Flag for final index
         final_index_flag = False
@@ -755,9 +764,135 @@ def propagate_dynamics(state, position, mass, velocity, track_direction, action,
     state_branch = [v_norm, a, n, delta_heading]
     state = np.concatenate( [state_branch , curvature_list , lidar_samples , [0]] ) # NOTE: Last entry is only updated
                                                                                                # after running assess_termination()
-                                                                                               # in the step function
+                                                                                               # in the step function TODO: remove last entry completely
     # Return updated state, position and mass
     return state, new_position, mass, v, centerline_pos
+
+
+
+
+def propagate_dynamics_sarsa(state, position, mass, velocity, track_direction, action, index, delta_t = inp.delta_t,
+                       integration_method = inp.integration_method):
+    ''' # TODO: DELETE!!!
+    Propagates car dynamics based on current state and defined action
+
+    Parameters
+    ----------
+    state: float array [1 x 24]
+        State array, containing: # veloxity norm [m/s], t acc [m/s^2], n acc [m/s^2], delta heading [rad], 
+        10 future curvatures [rad], 9 LIDAR measurements [m], track limits [float]
+    position: float array [1 x 2]
+        xy position coordinates [m]
+    mass: float
+        Current mass [kg]
+    velocity: float array [1 x 2]
+        Array containing x and y components of velocity [m/s]
+    track_direction: float array [1 x 2]
+        Unit array containing the xy coordinates of the track direction (e.g.: [1,0] means track is horizontal, to the right)
+    action: float array [1 x 2]
+        Action array, containing: throttle (ranging from -1 to 1) [-] and steering (ranging from -1 to 1) [-], respectively
+    index: int
+        index of current position w.r.t. the coordinate array
+    delta_t: float
+        Simulation time step [s]
+    
+    Returns
+    -------
+    state: float array [1 x 5]
+        State array after one propagation step, with the same content as the input state array.
+    '''
+
+    # Define mass flow rate
+    mass_flow_rate = 0.028 # kg/s
+
+    # Compute norm of current velocity
+    speed_norm = state[0] # m/s
+
+    if speed_norm < inp.min_speed:
+        speed_norm = inp.min_speed
+
+    # Convert steering input into an angle, with a maximum angle of 15 deg
+    angle = - np.deg2rad(15) * action[1] # rad
+
+    # Compute longitudinal acceleration based on current velocity, mass and throttle
+    acceleration = get_acceleration(speed_norm, mass, action[0])
+
+    # Propagate mass using Euler integrator
+    mass = mass - mass_flow_rate * delta_t * action[0] if action[0] >= 0 else mass
+
+    # Define threshold of minimum mass (0 kg) and update acceleration (0 m/s^2)
+    if mass <= inp.vehicle_mass:
+        mass = inp.vehicle_mass
+        acceleration = 0
+
+    # Compute tangent accelearation
+    acc_x_tangent = np.cos(angle) * acceleration * velocity[0] / speed_norm
+    acc_y_tangent = np.cos(angle) * acceleration * velocity[1] / speed_norm
+
+    # Compute normal acceleration
+    # acc_x_normal = - np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[1] / speed_norm
+    # acc_y_normal = np.sin(angle) * ( speed_norm**2 / inp.wheelbase_length ) * velocity[0] / speed_norm
+    
+    acc_x_normal = - ( np.tan(angle) * ( speed_norm**2 / inp.wheelbase_length ) + np.sin(angle) * acceleration ) * velocity[1] / speed_norm
+    acc_y_normal = ( np.tan(angle) * ( speed_norm**2 / inp.wheelbase_length ) + np.sin(angle) * acceleration ) * velocity[0] / speed_norm
+    # acc_x_normal = - ( np.sin(angle) * acceleration ) * velocity[1] / speed_norm
+    # acc_y_normal = ( np.sin(angle) * acceleration ) * velocity[0] / speed_norm
+
+    # Add normal and tangent accelerations in cartesian coordinates
+    acc_x = acc_x_tangent + acc_x_normal 
+    acc_y = acc_y_tangent + acc_y_normal
+
+    # Propagate speed using Euler integrator
+    v = integrate(velocity, [acc_x, acc_y], delta_t, integration_method)
+    # v = [velocity[0] + acc_x * delta_t, velocity[1] + acc_y * delta_t]
+
+    new_position = integrate(position, v, delta_t, integration_method)
+    # Propagate position using Euler integrator
+    # new_position = [position[0] + velocity[0] * delta_t + 0.5 * acc_x * delta_t**2, position[1] + velocity[1] * delta_t + 0.5 * acc_y * delta_t**2]
+    new_position = np.array( new_position )
+
+
+    ################
+    # Update state #
+    ################
+    # Velocity norm
+    v_norm = np.linalg.norm(v)
+
+    # Compute longitudinal acceleration in g's
+    a = np.linalg.norm( [ acc_x_tangent, acc_y_tangent ] ) / 9.81 # g
+
+    # Compute normal acceleration in g's
+    n = np.linalg.norm( [ acc_x_normal, acc_y_normal ] ) / 9.81 # g
+
+    # Compute new heading wrt track direction
+    absolute_heading = np.arctan2( v[1] , v[0] )
+
+    # Compute difference between current angle and track angle
+    delta_heading = np.arctan2( track_direction[1] , track_direction[0] ) - absolute_heading
+
+    # Check if relative angle is within ]-pi, pi]
+    if delta_heading > np.pi:
+        delta_heading -= 2 * np.pi
+    elif delta_heading <= -np.pi:
+        delta_heading += 2 * np.pi
+
+    # Get future curvatures list
+    curvature_list = [0,0,0,0,0,0,0,0,0,0]
+    curvature_list[0:3], centerline_pos = get_future_curvatures(new_position, index,n_samples=3)
+
+    # Get LIDAR samples
+    lidar_samples = [200,200,200,200,200,200,200,200,200]
+    lidar_samples[3:6] = get_lidar_samples(new_position, index, simple=True)
+
+    # Updated state
+    # state = [v_norm, a, n, delta_heading, curvature_list, lidar_samples, float(False)] 
+    state_branch = [v_norm, a, n, delta_heading]
+    state = np.concatenate( [state_branch , curvature_list , lidar_samples , [0]] ) # NOTE: Last entry is only updated
+                                                                                               # after running assess_termination()
+                                                                                               # in the step function TODO: remove last entry completely
+    # Return updated state, position and mass
+    return state, new_position, mass, v, centerline_pos
+
 
 
 
@@ -898,7 +1033,8 @@ def get_reward(left_track, finish_line, previous_distance, current_distance, rew
         current_reward -= 1e3 # 1e3
         # NOTE: By penalising collisions as a function of the velocity norm
 
-    # TODO: Add centripetal acceleration penalty (car drifts if there is not enough traction)
+    # Centripetal acceleration penalty (car drifts if there is not enough traction)
+    current_reward -= max(0 , np.absolute(state[2]) - max_turning_acc(state[0]))
 
     return current_reward, delta_distance_travelled
 

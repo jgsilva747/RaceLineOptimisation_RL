@@ -1,10 +1,10 @@
 import torch
 
 # Choose circuit here
-chosen_circuit = "test curve"
+chosen_circuit = "silverstone"
 
 # Choose simulation time step
-delta_t = 0.01 # 0.01 # s
+delta_t = 0.015 # s
 
 # Integration method
 integration_method = 'euler'

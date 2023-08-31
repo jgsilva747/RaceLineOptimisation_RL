@@ -13,8 +13,8 @@ from Model_utilities import coordinates_in, coordinates_out, coordinates
 from Car_class import CarEnvironment
 
 
-idx_min = 0
-idx_max = 750
+idx_min = 100
+idx_max = 150
 
 
 
@@ -26,12 +26,9 @@ if __name__ == "__main__":
     torch.manual_seed(inp.seed)
 
 
-    ################
-    # SHAP STUFF ###
-    ################
-    sac = d3rlpy.load_learnable("reward_test/'constant_action', 'max_acc'.d3", device=None)
+    sac = d3rlpy.load_learnable("reward_test/dont_remember_but_really_good.d3", device=None)
 
-    env = CarEnvironment()
+    env = CarEnvironment(['superhuman'])
 
 
     actor_model = sac._impl.policy

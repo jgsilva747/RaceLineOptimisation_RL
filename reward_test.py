@@ -41,7 +41,7 @@ def train(reward_function) -> None:
     if inp.jupyter_flag:
         file_name = jupyter_dir + str(reward_function).strip('][') + '_' + str(inp.superhuman_discount) + '_seed_' + str(inp.seed) + '_100_runs' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + str(inp.superhuman_discount) + '_seed_' + str(inp.seed) + '_100_runs' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_' + 'silverstone_500k' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
@@ -282,6 +282,7 @@ def test_trained_file_name(file_name_lst,
         state_lst = np.array(state_lst)
         # np.save('state_example.npy', state_lst)
         print(f"{name} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
+        print(total_reward)
 
 
 
@@ -356,7 +357,6 @@ def tune_weight(reward_func, weight_array, penalty = False):
 
 
         print(f"{str(reward_func).strip('][')}_{str(weight)} --> {'Lap completed in' if lap_completed else 'DNF in'} {lap_time} s")
-        
 
 
 
@@ -419,7 +419,7 @@ def fine_tune(reward_function,
     if inp.jupyter_flag:
         file_name = jupyter_dir + str(reward_function).strip('][') + '_fine_tuning' + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
     else:
-        file_name = './reward_test/' + str(reward_function).strip('][') + '_fine_tuning' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
+        file_name = './reward_test/' + str(reward_function).strip('][') + '_silverstone_fine_tuning_2' # + '_discount_' + str(inp.superhuman_discount) + '_freq_' + str(inp.superhuman_frequency)
 
     env = CarEnvironment(log_file=file_name + '.txt', reward_function=reward_function)
     eval_env = CarEnvironment(reward_function=reward_function)
@@ -453,6 +453,7 @@ def fine_tune(reward_function,
                                                 transition_picker=transition_picker,
                                                 cache_size=sac_inputs["fit_settings"]["cache"])
 
+    print("Fitting")
     # start training
     sac.fit_online(
         env,
@@ -469,7 +470,7 @@ def fine_tune(reward_function,
     sac.save(file_name + '.d3')
 
 
-'''
+
 #######################################
 # Save agent when Ctrl+C is pressed   #
 #######################################
@@ -492,7 +493,7 @@ def handler(signum, frame):           #
 signal.signal(signal.SIGINT, handler) #
                                       #
 #######################################
-'''
+
 
 if __name__ == "__main__":
 
@@ -628,19 +629,22 @@ if __name__ == "__main__":
     #                         "'superhuman'_new_formulation_0.96",
     #                         "'superhuman'_long_0.98"
     #                         ])
-    # plt.show()
-
-    # fine_tune([inp.reward_list[6],
-    #            inp.reward_list[7]],
-    #           extra='_testing_short_7.5')
-
-    plot_learning(["'superhuman'_new_formulation_0.98",
-                   "'superhuman'_0.98_seed_10_100_runs",
-                   "'superhuman'_0.98_seed_100_100_runs"],
-                   color_lst=['tab:blue',
-                              'tab:green',
-                              'tab:orange'],
-                   label_lst=['Seed: 0',
-                              'Seed: 10',
-                              'Seed: 100'])
+    
+    test_trained_file_name([
+        "'superhuman'_silverstone_fine_tuning_2"
+                            ])
     plt.show()
+
+    # fine_tune([inp.reward_list[8]],
+    #           extra='_silverstone_500k') # 500k
+
+    # plot_learning(["'superhuman'_new_formulation_0.98",
+    #                "'superhuman'_0.98_seed_10_100_runs",
+    #                "'superhuman'_0.98_seed_100_100_runs"],
+    #                color_lst=['tab:blue',
+    #                           'tab:green',
+    #                           'tab:orange'],
+    #                label_lst=['Seed: 0',
+    #                           'Seed: 10',
+    #                           'Seed: 100'])
+    # plt.show()

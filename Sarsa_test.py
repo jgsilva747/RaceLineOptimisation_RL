@@ -29,122 +29,126 @@ global policy
 global score_hist
 global max_score_hist
 
-print("Setting up model")
+skip = True
 
-##########################################################
-# MODEL DEFINITION #######################################
-##########################################################
+if not skip:
 
-# Define the environment in the RL library.
-env = CarEnvironment(reward_function=['sarsa'])
+    print("Setting up model")
 
-# for reproducibility
-torch.manual_seed(inp.seed)
-np.random.seed(inp.seed)
+    ##########################################################
+    # MODEL DEFINITION #######################################
+    ##########################################################
 
-# Environment action and states
-state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.shape[0]
+    # Define the environment in the RL library.
+    env = CarEnvironment(reward_function=['sarsa'], sarsa=True)
 
-max_action = float(env.action_space.high[0]) # max action is the same in both entries
+    # for reproducibility
+    torch.manual_seed(inp.seed)
+    np.random.seed(inp.seed)
 
-##########################################################
-# EPISODE SETUP ##########################################
-##########################################################
+    # Environment action and states
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
 
-# Create and initialise time variable
-time = 0
+    max_action = float(env.action_space.high[0]) # max action is the same in both entries
 
-# Create and initialise action array
-'''
-Possible actions:
-[0] -1: brake; 0: no power; 1: accelerate
-[1] -1: turn left; 0: go straight; 1: turn right
-'''
+    ##########################################################
+    # EPISODE SETUP ##########################################
+    ##########################################################
 
-# Initialise score history array
-score_hist = []
-max_score_hist = []
+    # Create and initialise time variable
+    time = 0
 
-# Create Figures if ploting is set to True
-if inp.plot_episode:
-    fig, ax = plt.subplots(figsize=( 8 , 6))
-    ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
-    ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
-    # Apply tight layout to figure
-    plt.tight_layout()
-    # TODO: add labels
+    # Create and initialise action array
+    '''
+    Possible actions:
+    [0] -1: brake; 0: no power; 1: accelerate
+    [1] -1: turn left; 0: go straight; 1: turn right
+    '''
 
-if inp.plot_stats:
-    fig_reward, ax_reward = plt.subplots(figsize=( 8 , 6))
-    ax_reward.set_title('Reward Evolution')
-    ax_reward.set_xlabel('Episode [-]')
-    ax_reward.set_ylabel('Reward [-]')
-    ax_reward.grid()
+    # Initialise score history array
+    score_hist = []
+    max_score_hist = []
 
+    # Create Figures if ploting is set to True
+    if inp.plot_episode:
+        fig, ax = plt.subplots(figsize=( 8 , 6))
+        ax.plot(coordinates_out[:,0], coordinates_out[:,1], color = 'k')
+        ax.plot(coordinates_in[:,0], coordinates_in[:,1], color = 'k')
+        # Apply tight layout to figure
+        plt.tight_layout()
+        # TODO: add labels
 
-# Define initial action
-action = [1, 0]
-
-##########################################################
-# OVERWRITE ACTION_DIM TO MAKE DISCRETE MODEL ############
-action_dim = 2                                           #
-action_list = np.arange(0, 10)                            #
-##########################################################
-
-##########################################################
-# SARSA SETUP ############################################
-##########################################################
-
-total_states = 24
-n_states = 7
-norm_array = np.ones(n_states)
-norm_array[0] = 2
-state_dim = np.zeros(n_states)
-
-state_skip = [1,2,3,7,8,9,10,11,12,13, 14,15,16,20,21,22,23]
-
-state = 0
-
-for i in range( total_states ):
-    print(i)
-
-    if i not in state_skip:
-
-        if state >= 4 and state <= 6:
-            norm_array[state] = 10
-        state_dim[state] = int( ( env.observation_space.high[ i ] - env.observation_space.low[ i ] ) / norm_array[state] )
-
-        state += 1
+    if inp.plot_stats:
+        fig_reward, ax_reward = plt.subplots(figsize=( 8 , 6))
+        ax_reward.set_title('Reward Evolution')
+        ax_reward.set_xlabel('Episode [-]')
+        ax_reward.set_ylabel('Reward [-]')
+        ax_reward.grid()
 
 
-Q = np.zeros((10,10))
-policy = np.random.randint(action_list[0], action_list[-1], (2))
+    # Define initial action
+    action = [1, 0]
 
-Q = Q.astype('float32')
-policy = policy.astype('float32')
+    ##########################################################
+    # OVERWRITE ACTION_DIM TO MAKE DISCRETE MODEL ############
+    action_dim = 2                                           #
+    action_list = np.arange(0, 10)                            #
+    ##########################################################
 
-index = 1
+    ##########################################################
+    # SARSA SETUP ############################################
+    ##########################################################
 
-for size in state_dim:
+    total_states = 24
+    n_states = 7
+    norm_array = np.ones(n_states)
+    norm_array[0] = 2
+    state_dim = np.zeros(n_states)
 
-    Q = Q[..., np.newaxis]
-    Q = np.repeat(Q, size, axis = index + 1)
-    policy = policy[..., np.newaxis]
-    policy = np.repeat(policy, size, axis = index)
+    state_skip = [1,2,3,7,8,9,10,11,12,13, 14,15,16,20,21,22,23]
 
-    index += 1
+    state = 0
+
+    for i in range( total_states ):
+        print(i)
+
+        if i not in state_skip:
+
+            if state >= 4 and state <= 6:
+                norm_array[state] = 10
+            state_dim[state] = int( ( env.observation_space.high[ i ] - env.observation_space.low[ i ] ) / norm_array[state] )
+
+            state += 1
 
 
-# Variable used to get index of state within policy and Q:
-state_0, _ =  env.reset()
-v_aux = - state_0
-get_index = np.zeros((n_states))
-aux = 0
-for i in range(total_states):
-    if i not in state_skip:
-        get_index[aux] = v_aux[i]
-        aux += 1
+    Q = np.zeros((10,10))
+    policy = np.random.randint(action_list[0], action_list[-1], (2))
+
+    Q = Q.astype('float32')
+    policy = policy.astype('float32')
+
+    index = 1
+
+    for size in state_dim:
+
+        Q = Q[..., np.newaxis]
+        Q = np.repeat(Q, size, axis = index + 1)
+        policy = policy[..., np.newaxis]
+        policy = np.repeat(policy, size, axis = index)
+
+        index += 1
+
+
+    # Variable used to get index of state within policy and Q:
+    state_0, _ =  env.reset()
+    v_aux = - state_0
+    get_index = np.zeros((n_states))
+    aux = 0
+    for i in range(total_states):
+        if i not in state_skip:
+            get_index[aux] = v_aux[i]
+            aux += 1
 
 
 def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False,greedy=False):
@@ -315,12 +319,13 @@ def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False,greedy=Fa
         else:
             max_reward_count += 1
 
-        print("Episode: {}  Total Reward: {:0.2f}  Max Reward: {:0.2f}".format( episode + 1, total_reward, max_reward), end='\r')
+        print("Episode: {}  Total Reward: {:0.2f}  Max Reward: {:0.2f}".format( episode + 1, total_reward, max_reward))
         score_hist.append(total_reward)
         max_score_hist.append(max_reward)
 
     # Plot reward evolution
-    if inp.plot_stats:
+    # if inp.plot_stats:
+    if False:
         ax_reward.plot(score_hist, c='tab:blue', label = 'Episode Reward')
         ax_reward.plot(max_score_hist, c='tab:orange', label = 'Max Reward')
             # TODO: add more stats
@@ -339,6 +344,32 @@ def sarsa_train(n_episodes, alpha, eps, gamma, Q, variable_noise=False,greedy=Fa
     np.save("sarsa_score_hist" + extra + ".npy", np.array(score_hist))
 
     return Q, policy
+
+
+
+def plot_learning():
+
+    # Load reward history
+    reward_hist = np.load('sarsa_score_hist.npy')
+    # max_reward = []
+
+    # for i in range(len(reward_hist)):
+    #     max_reward.append( max( reward_hist[:i+1] ) )
+    #     print(i)
+
+    fig_reward, ax_reward = plt.subplots(figsize=( 8 , 3))
+    ax_reward.set_title('Reward Evolution')
+    ax_reward.set_xlabel('Episode [-]')
+    ax_reward.set_ylabel('Reward [-]')
+    ax_reward.grid()
+    ax_reward.set_xscale('log')
+
+    ax_reward.plot(reward_hist, c='tab:blue', label = 'Episode Reward')
+    # ax_reward.plot(max_score_hist, c='tab:orange', label = 'Max Reward')
+
+    # ax_reward.legend(loc='best')
+
+    fig_reward.tight_layout()
 
 
 def test_trained() -> None:
@@ -440,7 +471,7 @@ if __name__ == '__main__':
     # Random #
     ##########
     # Number of episodes
-    n_episodes = int(1e4)
+    n_episodes = int(1e2)
     # Factor to update Q(s,a)
     alpha = 0.2
     # Randomness factor
@@ -448,7 +479,7 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)
+    # Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q)
 
 
     # ############
@@ -470,7 +501,7 @@ if __name__ == '__main__':
     # epsilon-greedy #
     ##################
     # Number of episodes
-    n_episodes = int(9e4)
+    n_episodes = int(9e2)
     # Factor to update Q(s,a)
     alpha = 0.5 # 0.01 # 0.1
     # Randomness factor
@@ -478,14 +509,17 @@ if __name__ == '__main__':
     # Importance of future rewards (discount factor)
     gamma = 0.9
 
-    Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q,greedy=True)
+    # Q, policy = sarsa_train(n_episodes, alpha, eps, gamma, Q, greedy=True)
 
     # Save policy
-    np.save("sarsa_trained_policy.npy", policy)
+    # np.save("sarsa_trained_policy.npy", policy)
 
     # Test learnt policy
     # test_trained() 
 
+    # Plot learning process
+    plot_learning()
+
     # Show all figures
-    # plt.show()
+    plt.show()
 

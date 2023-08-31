@@ -20,7 +20,8 @@ from Model_utilities import coordinates, MAX_INDEX
 # Create a custom environment that adheres to the OpenAI Gym interface.
 class CarEnvironment(gym.Env):
     def __init__(self, delta_t = inp.delta_t, integration_method = inp.integration_method,
-                 log_file = 'run_log.txt', reward_function=['distance']):
+                 log_file = 'run_log.txt', reward_function=['distance'],
+                 sarsa=False):
         '''
         Initialise car class and required variables
 
@@ -147,7 +148,7 @@ class CarEnvironment(gym.Env):
                     1 # track limits bool, float representation
                     ]).astype(np.float32),
             )
-        
+
         # Auxiliar variables used in reward function
         self.previous_distance_to_last_checkpoint = 0
         self.travelled_distance = 0
@@ -194,6 +195,12 @@ class CarEnvironment(gym.Env):
             self.info_logger.addHandler(info_handler)
 
             self.info_logger.setLevel(logging.INFO)
+        
+        # Define auxiliar variable that will simplify env. step when SARSA algo. is used
+        self.sarsa = sarsa
+
+        # Auxiliar action list
+        self.action_list = []
             
 
     def reset(self, seed = inp.seed):
@@ -215,9 +222,16 @@ class CarEnvironment(gym.Env):
             self.info_logger.info(f'{float(self.reward)} {float(self.index)} {float(self.time)}')
             # logging.info(f"Travelled Distance: {self.travelled_distance}, Position: {self.current_position}")
 
+        # Save action sequence (eq. to raceline) when reward > 3000
+        if self.reward > 3000:
+            np.save('action_lists/reward_' + str(self.reward) + '.npy', self.action_list)
+
 
         # Reset seed
         super().reset(seed=seed)
+
+        # Reset action list        
+        self.action_list = []
 
         # Reset initial state
         self.state = self.state_0
@@ -256,6 +270,9 @@ class CarEnvironment(gym.Env):
             Array of current time step's action (throttle + steering)
         '''
 
+        # Update action list
+        self.action_list.append(action)
+
         # Track direction
         if self.circuit_index >= MAX_INDEX:
             self.circuit_index -= 1
@@ -263,7 +280,19 @@ class CarEnvironment(gym.Env):
         track_direction = track_direction / np.linalg.norm(track_direction)
 
         # Propagate state
-        new_state, new_position, new_mass, self.v_xy, centerline_pos = util.propagate_dynamics(self.state,
+        if not self.sarsa:
+            new_state, new_position, new_mass, self.v_xy, centerline_pos = util.propagate_dynamics(self.state,
+                                                                                               self.current_position,
+                                                                                               self.mass,
+                                                                                               self.v_xy,
+                                                                                               track_direction,
+                                                                                               action,
+                                                                                               self.circuit_index,
+                                                                                               delta_t = self.delta_t,
+                                                                                               integration_method=self.integration_method)
+
+        else:
+            new_state, new_position, new_mass, self.v_xy, centerline_pos = util.propagate_dynamics_sarsa(self.state,
                                                                                                self.current_position,
                                                                                                self.mass,
                                                                                                self.v_xy,

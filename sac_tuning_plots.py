@@ -5,7 +5,7 @@ import os
 import d3rlpy
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.rcParams.update({'font.size':14})
+matplotlib.rcParams.update({'font.size':12})
 
 
 # File imports
@@ -15,11 +15,13 @@ from Car_class import CarEnvironment
 from sac_tuning import settings_dict, default_settings
 
 
+# Define line width
+lw = 2
+
 
 # Choose whether to plot real values or median values
-plot_median = True
+plot_median = False
 batch_size = 1
-
 
 plot_dir = 'Figures/tuning/'
 if not os.path.exists(plot_dir):
@@ -55,7 +57,7 @@ def plot_tuning(settings, value, label = None):
         label = str(value)
 
     # Plot reward evolution
-    ax.plot(steps_array, data_array, color=color_array[ values_array.index( value ) ], label=label)
+    ax.plot(steps_array, data_array, color=color_array[ values_array.index( value ) ], linewidth=lw, label=label)
 
 
 
@@ -113,51 +115,107 @@ if __name__ == "__main__":
         
         chosen_data = median_array
 
+    
+    labels = {'reward_scaler' : ['Reward x 0.1',
+                                 'Reward x 10',
+                                 'Reward x 20',
+                                 'Reward x 50'
+                                 ],
+             'encoder' :        ['tanh()',
+                                 'sigmoid',
+                                 'Dense ReLU',
+                                 'Dense tanh()'
+                                 ],
+             'tau' : [r'1$\times 10^{-4}$',
+                                r'5$\times 10^{-3}$',
+                                 r'1$\times 10^{-2}$',
+                                 r'1$\times 10^{-1}$'
+                                 ],
+             'critic_learning_rate' : [r'3$\times 10^{-6}$',
+                                r'3$\times 10^{-3}$',
+                                 r'3$\times 10^{-2}$'
+                                 ],
+             'gamma' : ['0.5',
+                                 '0.9',
+                                 '0.95'
+                                 ],
+             'batch_size' : ['64',
+                                 '128',
+                                 '512'
+                                 ],
+                                 }
+    
+    default_label = ['256',
+                     '0.99',
+                     r'3$\times10^{-4}$',
+                     r'1$\times 10^{-3}$',
+                     'ReLU',
+                     'Reward x 1'
+                     ]
+    label_index = 0
+
 
     # Loop over available settings
     for settings in settings_dict:
         print(settings)
 
-        # Create Figure
-        fig, ax = plt.subplots(figsize=(8,6))
 
-        ax.set_title('Effect of ' + settings + ' on reward evolution')
+        label_array = labels.get(settings)
+
+        # Create Figure
+        fig, ax = plt.subplots(figsize=(5.25,4))
+
+        # ax.set_title('Effect of ' + settings + ' on reward evolution')
 
         values_array = settings_dict.get(settings)
 
         # Loop over selected values
         for value in values_array:
 
-            plot_tuning(settings, value)
+            plot_tuning(settings, value, label_array[ values_array.index(value) ])
 
         # Plot default results
-        ax.plot(default_steps_array, default_data, color='tab:red', label='default')
+        ax.plot(default_steps_array, default_data, color='tab:red', linewidth=lw, label=default_label[label_index])
+        label_index += 1
         # Plot tuned results
         # ax.plot(chosen_steps_array, chosen_data, color='k', label='tuned')
         
         # ax.legend(loc = 'best')
         fig.legend(loc = 'outside lower center', #loc='upper center', bbox_to_anchor=(0.5, -0.15),
             #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25),
-            fancybox=True, shadow=True, ncol = len(values_array) + 1 )
+            fancybox=True, shadow=True, ncol = 2)# len(values_array) + 1 )
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.988,
+                            bottom=0.344,
+                            left=0.105,
+                            right=0.979,
+                            hspace=0.2,
+                            wspace=0.2)
         ax.set_ylabel('Reward [-]')
         ax.set_xlabel('Steps [-]')
         print("===========================\n")
     
 
-    fig, ax = plt.subplots(figsize=(8,5))
+    fig, ax = plt.subplots(figsize=(10.5,3))
     # Plot default results
-    ax.plot(default_steps_array, default_data, color='tab:blue', label='default')
+    ax.plot(default_steps_array, default_data, color='tab:blue', linewidth=lw, label='default')
     # Plot tuned results
-    ax.plot(chosen_steps_array, chosen_data, color='tab:orange', label='tuned')
+    ax.plot(chosen_steps_array, chosen_data, color='tab:orange', linewidth=lw, label='tuned')
 
     values_array = settings_dict.get('reward_scaler')
     multiplier20 = values_array[2]
-    plot_tuning('reward_scaler', multiplier20, label='Reward Scale x20')
+    # plot_tuning('reward_scaler', multiplier20, label='Reward Scale x20')
     fig.legend(loc = 'outside lower center', #loc='upper center', bbox_to_anchor=(0.5, -0.15),
             #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.25),
             fancybox=True, shadow=True, ncol = len(values_array) + 1 )
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.948,
+                        bottom=0.339,
+                        left=0.06,
+                        right=0.979,
+                        hspace=0.2,
+                        wspace=0.2)
     ax.grid()
     ax.set_ylabel('Reward [-]')
     ax.set_xlabel('Steps [-]')
     plt.show()
-
